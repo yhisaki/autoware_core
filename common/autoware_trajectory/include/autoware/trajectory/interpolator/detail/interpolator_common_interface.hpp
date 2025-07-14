@@ -122,7 +122,7 @@ protected:
     auto comp = [](const double & a, const double & b) { return a <= b; };
     const int32_t idx =
       std::distance(bases_.begin(), std::lower_bound(bases_.begin(), bases_.end(), s, comp)) - 1;
-    return std::clamp(idx, 0, base.size() - 1);
+    return std::clamp(idx, 0, bases_.size() - 1);
   }
 
 public:
