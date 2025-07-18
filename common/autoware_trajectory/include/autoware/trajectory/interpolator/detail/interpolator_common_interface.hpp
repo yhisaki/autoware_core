@@ -123,7 +123,7 @@ protected:
     const auto distance =
       std::distance(bases_.begin(), std::lower_bound(bases_.begin(), bases_.end(), s, comp));
     const int32_t idx = (distance == 0) ? 0 : static_cast<int32_t>(distance) - 1;
-    return std::clamp(idx, 0, bases_.size() - 1);
+    return std::clamp(idx, static_cast<int32_t>(0), static_cast<int32_t>(bases_.size() - 1));
   }
 
 public:
