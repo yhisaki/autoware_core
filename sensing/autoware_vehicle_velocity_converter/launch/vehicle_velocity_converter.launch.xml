@@ -1,11 +1,15 @@
 <launch>
   <arg name="input_vehicle_velocity_topic" default="velocity_status"/>
+  <arg name="input_estimated_speed_scale_factor" default="estimated_speed_scale_factor"/>
   <arg name="output_twist_with_covariance" default="twist_with_covariance"/>
   <arg name="config_file" default="$(find-pkg-share autoware_vehicle_velocity_converter)/config/vehicle_velocity_converter.param.yaml"/>
+  <arg name="output_current_speed_scale_factor" default="debug/current_speed_scale_factor"/>
 
   <node pkg="autoware_vehicle_velocity_converter" exec="autoware_vehicle_velocity_converter_node" output="both">
     <param from="$(var config_file)"/>
     <remap from="velocity_status" to="$(var input_vehicle_velocity_topic)"/>
+    <remap from="estimated_speed_scale_factor" to="$(var input_estimated_speed_scale_factor)"/>
     <remap from="twist_with_covariance" to="$(var output_twist_with_covariance)"/>
+    <remap from="debug/current_speed_scale_factor" to="$(var output_current_speed_scale_factor)"/>
   </node>
 </launch>

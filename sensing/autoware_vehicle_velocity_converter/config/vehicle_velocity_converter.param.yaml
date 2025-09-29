@@ -4,3 +4,6 @@
     velocity_stddev_xx: 0.2  # [m/s]
     angular_velocity_stddev_zz: 0.1  # [rad/s]
     frame_id: base_link
+    enable_online_speed_scale_factor_calibration: false
+    acceptable_speed_scale_factor_range: [0.98, 1.02]
+    stop_speed_threshold: 0.1  # [m/s]

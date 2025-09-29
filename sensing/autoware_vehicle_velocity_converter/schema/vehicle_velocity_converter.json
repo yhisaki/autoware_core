@@ -6,27 +6,55 @@
     "vehicle_velocity_converter": {
       "type": "object",
       "properties": {
-        "stddev_vx": {
+        "velocity_stddev_xx": {
           "type": "number",
           "default": 0.2,
-          "description": "speed scale factor (ideal value is 1.0)"
+          "description": "standard deviation for velocity in x direction [m/s]"
         },
         "frame_id": {
           "type": "string",
           "description": "frame id for output message."
         },
-        "stddev_wz": {
+        "angular_velocity_stddev_zz": {
           "type": "number",
           "default": 0.1,
-          "description": "standard deviation for vx."
+          "description": "standard deviation for angular velocity around z axis [rad/s]"
         },
         "speed_scale_factor": {
           "type": "number",
           "default": 1.0,
-          "description": "standard deviation for yaw rate."
+          "description": "speed scale factor (ideal value is 1.0)"
+        },
+        "enable_online_speed_scale_factor_calibration": {
+          "type": "boolean",
+          "default": false,
+          "description": "enable online calibration of speed scale factor"
+        },
+        "acceptable_speed_scale_factor_range": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "default": [0.98, 1.02],
+          "description": "acceptable range for speed scale factor [min, max]"
+        },
+        "stop_speed_threshold": {
+          "type": "number",
+          "default": 0.1,
+          "description": "speed threshold to determine if vehicle is stopped [m/s]"
         }
       },
-      "required": ["stddev_vx", "frame_id", "stddev_wz", "speed_scale_factor"]
+      "required": [
+        "velocity_stddev_xx",
+        "frame_id",
+        "angular_velocity_stddev_zz",
+        "speed_scale_factor",
+        "enable_online_speed_scale_factor_calibration",
+        "acceptable_speed_scale_factor_range",
+        "stop_speed_threshold"
+      ]
     }
   },
   "properties": {
