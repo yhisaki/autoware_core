@@ -26,11 +26,11 @@ VehicleVelocityConverter::VehicleVelocityConverter(const rclcpp::NodeOptions & o
   stddev_wz_(declare_parameter<double>("angular_velocity_stddev_zz")),
   speed_scale_factor_(declare_parameter<double>("speed_scale_factor")),
   enable_online_speed_scale_factor_calibration_(
-    declare_parameter<bool>("enable_online_speed_scale_factor_calibration")),
-  estimated_speed_scale_factor_(declare_parameter<double>("estimated_speed_scale_factor")),
+    declare_parameter<bool>("enable_online_speed_scale_factor_calibration", false)),
+  estimated_speed_scale_factor_(declare_parameter<double>("estimated_speed_scale_factor", 1.0)),
   acceptable_speed_scale_factor_range_(
-    declare_parameter<std::vector<double>>("acceptable_speed_scale_factor_range")),
-  stop_speed_threshold_(declare_parameter<double>("stop_speed_threshold"))
+    declare_parameter<std::vector<double>>("acceptable_speed_scale_factor_range", {0.98, 1.02})),
+  stop_speed_threshold_(declare_parameter<double>("stop_speed_threshold", 0.1))
 {
   vehicle_report_sub_ = create_subscription<autoware_vehicle_msgs::msg::VelocityReport>(
     "velocity_status", rclcpp::QoS{100},
