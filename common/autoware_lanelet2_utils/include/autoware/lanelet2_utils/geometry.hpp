@@ -83,10 +83,10 @@ std::optional<lanelet::CompoundLineString3d> concatenate_center_line(
  * @param[in] linestring the original ConstLineString3d.
  * @param[in] s1 the start distance (arc length from the beginning of the linestring).
  * @param[in] s2 the end distance (arc length from the beginning of the linestring).
- * @return new LineString3d containing the interpolated start point and end point, with original
- * point strictly between s1 and s2.
+ * @return new ConstLineString3d containing the interpolated start point and end point, with
+ * original point strictly between s1 and s2.
  */
-std::optional<lanelet::LineString3d> get_linestring_from_arc_length(
+std::optional<lanelet::ConstLineString3d> get_linestring_from_arc_length(
   const lanelet::ConstLineString3d & linestring, const double s1, const double s2);
 
 /**
@@ -100,6 +100,178 @@ std::optional<lanelet::LineString3d> get_linestring_from_arc_length(
 std::optional<geometry_msgs::msg::Pose> get_pose_from_2d_arc_length(
   const lanelet::ConstLanelets & lanelet_sequence, const double s);
 
+/**
+ * @brief extract a lanelet Polygon between two arc-length positions along input lanelet sequence
+ * @param[in] lanelet_sequence input sequence of ConstLanelets
+ * @param[in] s1 the start distance (arc length from the beginning).
+ * @param[in] s2 the end distance (arc length from the beginning).
+ * @return new CompoundPolygon3d of lanelet which left and right bound are between their s1 and s2.
+ */
+std::optional<lanelet::CompoundPolygon3d> get_polygon_from_arc_length(
+  const lanelet::ConstLanelets & lanelet_sequence, const double s1, const double s2);
+
+/**
+ * @brief find the closest segment of the ConstLineString3d to the BasicPoint3d
+ * @param[in] linestring linestring that want to find the closest segment
+ * @param[in] search_pt query point
+ * @return closest segment of the line string to the query point
+ */
+lanelet::ConstLineString3d get_closest_segment(
+  const lanelet::ConstLineString3d & linestring, const lanelet::BasicPoint3d & search_pt);
+
+/**
+ * @brief find the angle of lanelet center line segment that is closest to search point
+ * @param[in] lanelet lanelet that want to find the angle of the closest centerline segment
+ * @param[in] search_pt query point
+ * @return angle of the center line of the closest lanelet segment
+ */
+double get_lanelet_angle(
+  const lanelet::ConstLanelet & lanelet, const lanelet::BasicPoint3d & search_pt);
+
+/**
+ * @brief find pose of the closest point of the lanelet centerline to search point.
+ * @param[in] lanelet lanelet that want to find pose
+ * @param[in] search_pt query point
+ * @return pose of the closest point of the lanelet centerline to search point.
+ */
+geometry_msgs::msg::Pose get_closest_center_pose(
+  const lanelet::ConstLanelet & lanelet, const lanelet::BasicPoint3d & search_pt);
+
+/**
+ * @brief return ArcCoordinates of the search pose on lanelet sequence
+ * @details return {length, distance}
+ * length: arc-length of pose projection point on the lanelet sequence centerline
+ * distance: lateral distance from centerline to pose (left is positive, right is negative)
+ * @param[in] lanelet_sequence vector of ConstLanelet
+ * @param[in] pose search pose
+ * @return ArcCoordinates of the pose on lanelet sequence
+ */
+lanelet::ArcCoordinates get_arc_coordinates(
+  const lanelet::ConstLanelets & lanelets, const geometry_msgs::msg::Pose & pose);
+
+/**
+ * @brief return ArcCoordinates of the search pose on lanelet sequence
+ * @details return {length, distance}
+ * length: arc-length of pose projection point on the lanelet sequence centerline
+ * distance: lateral distance from centerline to pose (left is positive, right is negative)
+ * This function uses the centerline for the ego to follow.
+ * - when the `use_waypoints` in the autoware_map_loader is true,
+ *   - the waypoints tag in the lanelet2::LaneletMapPtr is used instead of the centerline.
+ * - when the `use_waypoints` in the autoware_map_loader is false,
+ *   - the centerline in the lanelet2::LaneletMapPtr is used.
+ * @param[in] lanelet_sequence vector of ConstLanelet
+ * @param[in] pose search pose
+ * @param[in] lanelet_map_ptr LaneletMap
+ * @return ArcCoordinates of the pose on lanelet sequence
+ */
+lanelet::ArcCoordinates get_arc_coordinates_on_ego_centerline(
+  const lanelet::ConstLanelets & lanelets, const geometry_msgs::msg::Pose & pose,
+  const lanelet::LaneletMapConstPtr & lanelet_map_ptr);
+
+/**
+ * @brief return distance of search pose to centerline (distance in ArcCoordinates)
+ * @param[in] lanelet ConstLanelet
+ * @param[in] pose search pose
+ * @return distance (double)
+ */
+double get_lateral_distance_to_centerline(
+  const lanelet::ConstLanelet & lanelet, const geometry_msgs::msg::Pose & pose);
+
+/**
+ * @brief return distance of search pose to the closest lanelet's centerline in lanelet sequence
+ * (distance in ArcCoordinates)
+ * @param[in] lanelet_sequence vector of ConstLanelet (ConstLanelets)
+ * @param[in] pose search pose
+ * @return distance (double)
+ */
+double get_lateral_distance_to_centerline(
+  const lanelet::ConstLanelets & lanelet_sequence, const geometry_msgs::msg::Pose & pose);
+
+/**
+ * @brief combine lanelet sequence (several lanelets) into one lanelet
+ * @param[in] lanelets several lanelets
+ * @return one lanelet
+ */
+std::optional<lanelet::ConstLanelet> combine_lanelets_shape(
+  const lanelet::ConstLanelets & lanelets);
+
+/**
+ * @brief expand the lanelet
+ * @param[in] lanelet_obj original lanelet
+ * @param[in] left_offset offset of the left bound (positive expand, negative narrow)
+ * @param[in] right_offset offset of the right bound (negative expand, positive narrow)
+ * @return expanded lanelet
+ */
+std::optional<lanelet::ConstLanelet> get_dirty_expanded_lanelet(
+  const lanelet::ConstLanelet & lanelet_obj, const double left_offset, const double right_offset);
+
+/**
+ * @brief expand the lanelets (several lanelets)
+ * @param[in] lanelet_obj original lanelets (several lanelets)
+ * @param[in] left_offset offset of the left bound (positive expand, negative narrow)
+ * @param[in] right_offset offset of the right bound (negative expand, positive narrow)
+ * @return expanded lanelets
+ */
+std::optional<lanelet::ConstLanelets> get_dirty_expanded_lanelets(
+  const lanelet::ConstLanelets & lanelet_obj, const double left_offset, const double right_offset);
+
+/**
+ * @brief get the centerline of ConstLanelet with offset
+ * @param[in] lanelet_obj target lanelet
+ * @param[in] resolution desired resolution (distance / segments)
+ * @return ConstLineString3d which is the ConstLanelet's centerline (without offset)
+ */
+lanelet::ConstLineString3d get_fine_centerline(
+  const lanelet::ConstLanelet & lanelet_obj, const double resolution = 5.0);
+
+/**
+ * @brief get the centerline of ConstLanelet with offset
+ * @param[in] lanelet_obj target lanelet
+ * @param[in] offset offset
+ * @param[in] resolution desired resolution (distance / segments)
+ * Sign Convention:
+ * Positive: to the left bound
+ * Negative: to the right bound
+ * @return ConstLineString3d which is the ConstLanelet's centerline with offset
+ */
+lanelet::ConstLineString3d get_centerline_with_offset(
+  const lanelet::ConstLanelet & lanelet_obj, const double offset, const double resolution = 5.0);
+
+/**
+ * @brief get the right bound of ConstLanelet with offset
+ * @param[in] lanelet_obj target lanelet
+ * @param[in] offset offset
+ * @param[in] resolution desired resolution (distance / segments)
+ * Sign Convention: (opposite to centerline)
+ * Positive: to outside of lanelet (to the **right**),
+ * Negative: to inside of lanelet (to the **left** bound)
+ * @return ConstLineString3d which is the ConstLanelet's right bound with offset
+ */
+lanelet::ConstLineString3d get_right_bound_with_offset(
+  const lanelet::ConstLanelet & lanelet_obj, const double offset, const double resolution = 5.0);
+
+/**
+ * @brief get the left bound of ConstLanelet with offset
+ * @param[in] lanelet_obj target lanelet
+ * @param[in] offset offset
+ * @param[in] resolution desired resolution (distance / segments)
+ * Sign Convention: (Same as centerline)
+ * Positive: to outside of lanelet (to the left),
+ * Negative: to inside of lanelet (to the right bound).
+ * @return ConstLineString3d which is the ConstLanelet's left bound with offset
+ */
+lanelet::ConstLineString3d get_left_bound_with_offset(
+  const lanelet::ConstLanelet & lanelet_obj, const double offset, const double resolution = 5.0);
+
+/**
+ * @brief check if the query pose is inside lanelet or within given radius.
+ * @param[in] lanelet input lanelet
+ * @param[in] pose query pose
+ * @param[in] radius given radius
+ */
+bool is_in_lanelet(
+  const geometry_msgs::msg::Pose & pose, const lanelet::ConstLanelet & lanelet,
+  const double radius = 0.0);
 }  // namespace autoware::experimental::lanelet2_utils
 
 #endif  // AUTOWARE__LANELET2_UTILS__GEOMETRY_HPP_

@@ -16,6 +16,7 @@
 #include "autoware/trajectory/utils/closest.hpp"
 #include "autoware/trajectory/utils/crossed.hpp"
 #include "autoware/trajectory/utils/curvature_utils.hpp"
+#include "autoware/trajectory/utils/find_if.hpp"
 #include "autoware/trajectory/utils/find_intervals.hpp"
 #include "autoware_utils_geometry/geometry.hpp"
 #include "lanelet2_core/primitives/LineString.h"
@@ -50,6 +51,28 @@ geometry_msgs::msg::Point point(double x, double y)
   p.x = x;
   p.y = y;
   return p;
+}
+
+void check_if_equals(const Trajectory & trajectory1, const Trajectory & trajectory2)
+{
+  for (double s = 0.0; s <= trajectory1.length(); s += 0.5) {
+    auto point1 = trajectory1.compute(s);
+    auto point2 = trajectory2.compute(s);
+
+    EXPECT_EQ(point1.point.pose.position.x, point2.point.pose.position.x);
+  }
+
+  EXPECT_EQ(
+    trajectory1.longitudinal_velocity_mps().start(),
+    trajectory2.longitudinal_velocity_mps().start());
+  EXPECT_EQ(
+    trajectory1.longitudinal_velocity_mps().end(), trajectory2.longitudinal_velocity_mps().end());
+  EXPECT_EQ(trajectory1.lateral_velocity_mps().start(), trajectory2.lateral_velocity_mps().start());
+  EXPECT_EQ(trajectory1.lateral_velocity_mps().end(), trajectory2.lateral_velocity_mps().end());
+  EXPECT_EQ(trajectory1.heading_rate_rps().start(), trajectory2.heading_rate_rps().start());
+  EXPECT_EQ(trajectory1.heading_rate_rps().end(), trajectory2.heading_rate_rps().end());
+  EXPECT_EQ(trajectory1.lane_ids().start(), trajectory2.lane_ids().start());
+  EXPECT_EQ(trajectory1.lane_ids().end(), trajectory2.lane_ids().end());
 }
 }  // namespace
 TEST(TrajectoryCreatorTest, constructor)
@@ -170,6 +193,28 @@ TEST_F(TrajectoryTest, manipulate_lateral_velocity)
   EXPECT_FLOAT_EQ(5.0, point2.point.lateral_velocity_mps);
   EXPECT_FLOAT_EQ(10.0, point3.point.lateral_velocity_mps);
   EXPECT_FLOAT_EQ(0.0, point4.point.lateral_velocity_mps);
+}
+
+TEST_F(TrajectoryTest, clamp_longitudinal_velocity)
+{
+  trajectory->longitudinal_velocity_mps() = 10.0;
+  trajectory->longitudinal_velocity_mps()
+    .range(trajectory->length() / 3, 2 * trajectory->length() / 3)
+    .set(5.0);
+  trajectory->longitudinal_velocity_mps()
+    .range(trajectory->length() / 4, 3 * trajectory->length() / 4)
+    .clamp(8.0);
+  auto point1 = trajectory->compute(0.0);
+  auto point2 = trajectory->compute(trajectory->length() / 4.0);
+  auto point3 = trajectory->compute(trajectory->length() / 2.0);
+  auto point4 = trajectory->compute(3 * trajectory->length() / 4.0);
+  auto point5 = trajectory->compute(trajectory->length());
+
+  EXPECT_FLOAT_EQ(10.0, point1.point.longitudinal_velocity_mps);
+  EXPECT_FLOAT_EQ(8.0, point2.point.longitudinal_velocity_mps);
+  EXPECT_FLOAT_EQ(5.0, point3.point.longitudinal_velocity_mps);
+  EXPECT_FLOAT_EQ(8.0, point4.point.longitudinal_velocity_mps);
+  EXPECT_FLOAT_EQ(10.0, point5.point.longitudinal_velocity_mps);
 }
 
 TEST_F(TrajectoryTest, manipulate_velocities)
@@ -562,6 +607,64 @@ TEST_F(TrajectoryTest, crop)
   EXPECT_EQ(end_point_expect.lane_ids[0], end_point_actual.lane_ids[0]);
 }
 
+TEST_F(TrajectoryTest, find_if)
+{
+  geometry_msgs::msg::Point base_point;
+  base_point.x = 5.0;
+  base_point.y = 5.0;
+  const auto radius = 3.0;
+
+  {  // first index without binary search
+    const auto index = autoware::experimental::trajectory::find_first_index_if(
+      *trajectory, [&](const autoware_internal_planning_msgs::msg::PathPointWithLaneId & point) {
+        return autoware_utils_geometry::calc_distance2d(point.point.pose.position, base_point) <
+               radius;
+      });
+    ASSERT_TRUE(index.has_value());
+    const auto point = trajectory->compute(*index).point.pose.position;
+    EXPECT_FLOAT_EQ(point.x, 3.30);
+    EXPECT_FLOAT_EQ(point.y, 4.01);
+  }
+
+  {  // first index with binary search
+    const auto index = autoware::experimental::trajectory::find_first_index_if(
+      *trajectory,
+      [&](const autoware_internal_planning_msgs::msg::PathPointWithLaneId & point) {
+        return autoware_utils_geometry::calc_distance2d(point.point.pose.position, base_point) <
+               radius;
+      },
+      20);
+    ASSERT_TRUE(index.has_value());
+    const auto point = trajectory->compute(*index).point.pose.position;
+    EXPECT_NEAR(autoware_utils_geometry::calc_distance2d(point, base_point), radius, 1e-3);
+  }
+
+  {  // last index without binary search
+    const auto index = autoware::experimental::trajectory::find_last_index_if(
+      *trajectory, [&](const autoware_internal_planning_msgs::msg::PathPointWithLaneId & point) {
+        return autoware_utils_geometry::calc_distance2d(point.point.pose.position, base_point) <
+               radius;
+      });
+    ASSERT_TRUE(index.has_value());
+    const auto point = trajectory->compute(*index).point.pose.position;
+    EXPECT_FLOAT_EQ(point.x, 6.49);
+    EXPECT_FLOAT_EQ(point.y, 5.20);
+  }
+
+  {  // last index with binary search
+    const auto index = autoware::experimental::trajectory::find_last_index_if(
+      *trajectory,
+      [&](const autoware_internal_planning_msgs::msg::PathPointWithLaneId & point) {
+        return autoware_utils_geometry::calc_distance2d(point.point.pose.position, base_point) <
+               radius;
+      },
+      20);
+    ASSERT_TRUE(index.has_value());
+    const auto point = trajectory->compute(*index).point.pose.position;
+    EXPECT_NEAR(autoware_utils_geometry::calc_distance2d(point, base_point), radius, 1e-3);
+  }
+}
+
 TEST_F(TrajectoryTest, find_interval)
 {
   auto intervals = autoware::experimental::trajectory::find_intervals(
@@ -627,4 +730,42 @@ TEST_F(TrajectoryTest, get_contained_lane_ids)
   EXPECT_EQ(2, contained_lane_ids.size());
   EXPECT_EQ(0, contained_lane_ids[0]);
   EXPECT_EQ(1, contained_lane_ids[1]);
+}
+
+TEST_F(TrajectoryTest, copy_ctor)
+{
+  const auto trajectory2(*trajectory);
+
+  check_if_equals(*trajectory, trajectory2);
+}
+
+TEST_F(TrajectoryTest, copy_assignment)
+{
+  const auto trajectory2 = Trajectory::Builder{}.build(
+    {path_point_with_lane_id(0.00, 0.00, 1), path_point_with_lane_id(1.68, 0.81, 1),
+     path_point_with_lane_id(2.98, 1.65, 1), path_point_with_lane_id(4.01, 3.30, 0)});
+
+  *trajectory = *trajectory2;
+
+  check_if_equals(*trajectory, *trajectory2);
+}
+
+TEST_F(TrajectoryTest, move_ctor)
+{
+  const auto trajectory1(*trajectory);
+  const auto trajectory2(std::move(*trajectory));
+
+  check_if_equals(trajectory1, trajectory2);
+}
+
+TEST_F(TrajectoryTest, move_assignment)
+{
+  auto trajectory1 = Trajectory::Builder{}.build(
+    {path_point_with_lane_id(0.00, 0.00, 1), path_point_with_lane_id(1.68, 0.81, 1),
+     path_point_with_lane_id(2.98, 1.65, 1), path_point_with_lane_id(4.01, 3.30, 0)});
+
+  const auto trajectory2(*trajectory1);
+  trajectory = std::move(*trajectory1);
+
+  check_if_equals(*trajectory, trajectory2);
 }

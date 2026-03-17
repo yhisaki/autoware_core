@@ -15,12 +15,20 @@
 #ifndef AUTOWARE__LANELET2_UTILS__CONVERSION_HPP_
 #define AUTOWARE__LANELET2_UTILS__CONVERSION_HPP_
 
+#include <autoware_map_msgs/msg/lanelet_map_bin.hpp>
+#include <autoware_planning_msgs/msg/lanelet_route.hpp>
+#include <geometry_msgs/msg/point.hpp>
+#include <geometry_msgs/msg/pose.hpp>
+
 #include <lanelet2_core/Forward.h>
+#include <lanelet2_core/primitives/Lanelet.h>
 #include <lanelet2_routing/Forward.h>
 #include <lanelet2_traffic_rules/TrafficRulesFactory.h>
 
+#include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace autoware::experimental::lanelet2_utils
 {
@@ -41,6 +49,86 @@ std::pair<lanelet::routing::RoutingGraphConstPtr, lanelet::traffic_rules::Traffi
 instantiate_routing_graph_and_traffic_rules(
   lanelet::LaneletMapConstPtr lanelet_map, const char * location = lanelet::Locations::Germany,
   const char * participant = lanelet::Participants::Vehicle);
+/**
+ * @brief convert BasicPoint3d, ConstPoint3d, BasicPoint2d, and ConstPoint2d to ROS point
+ * (geometry_msgs::msg::Point)
+ * @param src source point BasicPoint3d, ConstPoint3d, BasicPoint2d, and ConstPoint2d
+ * @param z (for 2d) z component of point
+ * @return ROS Point (geometry_msgs::msg::Point)
+ */
+geometry_msgs::msg::Point to_ros(const lanelet::BasicPoint3d & src);
+geometry_msgs::msg::Point to_ros(const lanelet::ConstPoint3d & src);
+geometry_msgs::msg::Point to_ros(const lanelet::BasicPoint2d & src, const double & z = 0.0);
+geometry_msgs::msg::Point to_ros(const lanelet::ConstPoint2d & src, const double & z = 0.0);
+
+/**
+ * @brief convert ROS Point or Pose to lanelet::ConstPoint3d
+ * @param src source point/pose
+ * @return lanelet::ConstPoint3d
+ */
+lanelet::ConstPoint3d from_ros(const geometry_msgs::msg::Point & src);
+lanelet::ConstPoint3d from_ros(const geometry_msgs::msg::Pose & src);
+
+/**
+ * @brief serialize lanelet map message to binary ROS message
+ */
+autoware_map_msgs::msg::LaneletMapBin to_autoware_map_msgs(const lanelet::LaneletMapConstPtr & map);
+
+/**
+ * @brief deserialize lanelet map object from binary ROS message
+ */
+lanelet::LaneletMapConstPtr from_autoware_map_msgs(
+  const autoware_map_msgs::msg::LaneletMapBin & msg);
+
+/**
+ * @brief construct BasicLineString3d from vector of BasicPoint3d
+ */
+std::optional<lanelet::BasicLineString3d> create_safe_linestring(
+  const std::vector<lanelet::BasicPoint3d> & points);
+
+/**
+ * @brief construct ConstLineString3d from vector of ConstPoint3d
+ */
+std::optional<lanelet::ConstLineString3d> create_safe_linestring(
+  const std::vector<lanelet::ConstPoint3d> & points);
+
+/**
+ * @brief construct ConstLanelet from BasicPoint3d or ConstPoint3d
+ * @param left_points vector of points (for left side)
+ * @param right_points vector of points (for right side)
+ * @return ConstLanelet
+ */
+std::optional<lanelet::ConstLanelet> create_safe_lanelet(
+  const std::vector<lanelet::BasicPoint3d> & left_points,
+  const std::vector<lanelet::BasicPoint3d> & right_points);
+
+std::optional<lanelet::ConstLanelet> create_safe_lanelet(
+  const std::vector<lanelet::ConstPoint3d> & left_points,
+  const std::vector<lanelet::ConstPoint3d> & right_points);
+
+/**
+ * @brief construct ConstLanelet from ConstLineString3d
+ * @param left_linestring ConstLineString3d (for left side)
+ * @param right_linestring ConstLineString3d (for right side)
+ * @return ConstLanelet
+ */
+std::optional<lanelet::ConstLanelet> create_safe_lanelet(
+  const lanelet::ConstLineString3d & left_linestring,
+  const lanelet::ConstLineString3d & right_linestring);
+
+/**
+ * @brief remove the const keyword from several types of data
+ */
+lanelet::Point3d remove_const(const lanelet::ConstPoint3d & const_map_ptr);
+
+lanelet::LaneletMapPtr remove_const(const lanelet::LaneletMapConstPtr & const_map_ptr);
+
+lanelet::routing::RoutingGraphPtr remove_const(
+  const lanelet::routing::RoutingGraphConstPtr & const_routing_graph_ptr);
+
+lanelet::LineString3d remove_const(const lanelet::ConstLineString3d & const_linestring);
+
+lanelet::Lanelet remove_const(const lanelet::ConstLanelet & const_lanelet);
 
 }  // namespace autoware::experimental::lanelet2_utils
 #endif  // AUTOWARE__LANELET2_UTILS__CONVERSION_HPP_

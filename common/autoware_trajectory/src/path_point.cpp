@@ -115,8 +115,9 @@ interpolator::InterpolationResult Trajectory<PointType>::build(
   if (const auto result = this->longitudinal_velocity_mps().build(
         bases_, std::move(longitudinal_velocity_mps_values));
       !result) {
-    return tl::unexpected(interpolator::InterpolationFailure{
-      "failed to interpolate PathPoint::longitudinal_velocity_mps"});
+    return tl::unexpected(
+      interpolator::InterpolationFailure{
+        "failed to interpolate PathPoint::longitudinal_velocity_mps"});
   }
   if (const auto result =
         this->lateral_velocity_mps().build(bases_, std::move(lateral_velocity_mps_values));
@@ -200,6 +201,11 @@ std::vector<PointType> Trajectory<PointType>::restore(const size_t min_points) c
     }
   }
   return points;
+}
+
+void Trajectory<PointType>::set_stopline(const double start_point)
+{
+  longitudinal_velocity_mps_->range(start_point, this->length()).set(0.0);
 }
 
 Trajectory<PointType>::Builder::Builder() : trajectory_(std::make_unique<Trajectory<PointType>>())

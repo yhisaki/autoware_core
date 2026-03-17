@@ -56,7 +56,7 @@ Trajectory<PointType> & Trajectory<PointType>::operator=(const Trajectory & rhs)
 {
   if (this != &rhs) {
     BaseClass::operator=(rhs);
-    lane_ids_ = std::make_shared<detail::InterpolatedArray<LaneIdType>>(this->lane_ids());
+    lane_ids_ = std::make_shared<detail::InterpolatedArray<LaneIdType>>(*rhs.lane_ids_);
     add_base_addition_callback();
   }
   return *this;
@@ -184,6 +184,11 @@ std::vector<PointType> Trajectory<PointType>::restore(const size_t min_points) c
     }
   }
   return points;
+}
+
+void Trajectory<PointType>::set_stopline(const double start_point)
+{
+  longitudinal_velocity_mps_->range(start_point, this->length()).set(0.0);
 }
 
 Trajectory<PointType>::Builder::Builder() : trajectory_(std::make_unique<Trajectory<PointType>>())
