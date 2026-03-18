@@ -63,7 +63,7 @@ public:
   [[nodiscard]] std::vector<PointType> restore(const size_t min_points = 4) const;
 
   void set_stopline(const double arc_length);
-  void set_stopline(const double arc_length, const double time);
+  void set_stopline(const double arc_length, const double duration);
 
   [[nodiscard]] const SpatialTrajectory & spatial_trajectory() const;
 

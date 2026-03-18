@@ -140,7 +140,7 @@ int main()
   stop_immediate.set_stopline(stop_length);
 
   auto stop_with_wait = original;
-  stop_with_wait.set_stopline(stop_length, 4.8);
+  stop_with_wait.set_stopline(stop_length, 2.0);
 
   const auto crossed_point = original.compute_from_distance(stop_length);
   const auto [original_time, original_distance] = sample_time_distance(original);
@@ -158,7 +158,7 @@ int main()
     auto ax = axes[0];
     plot_spatial_trajectory(ax, original, "original", "navy");
     // plot_spatial_trajectory(ax, stop_immediate, "set_stopline(length)", "darkorange");
-    plot_spatial_trajectory(ax, stop_with_wait, "set_stopline(length, time)", "crimson");
+    plot_spatial_trajectory(ax, stop_with_wait, "set_stopline(length, duration)", "crimson");
     ax.plot(
       Args(
         std::vector<double>{stop_line[0].x(), stop_line[1].x()},
@@ -177,7 +177,7 @@ int main()
     auto ax = axes[1];
     plot_time_series(ax, original_time, original_distance, "original", "navy");
     plot_time_series(ax, immediate_time, immediate_distance, "set_stopline(length)", "darkorange");
-    plot_time_series(ax, wait_time, wait_distance, "set_stopline(length, time)", "crimson");
+    plot_time_series(ax, wait_time, wait_distance, "set_stopline(length, duration)", "crimson");
     ax.scatter(
       Args(
         std::vector<double>{rclcpp::Duration(crossed_point.time_from_start).seconds()},
@@ -194,7 +194,7 @@ int main()
     auto ax = axes[2];
     plot_time_series(ax, original_vel_time, original_vel, "original", "navy");
     plot_time_series(ax, immediate_vel_time, immediate_vel, "set_stopline(length)", "darkorange");
-    plot_time_series(ax, wait_vel_time, wait_vel, "set_stopline(length, time)", "crimson");
+    plot_time_series(ax, wait_vel_time, wait_vel, "set_stopline(length, duration)", "crimson");
     if (!wait_stop_points.empty()) {
       ax.plot(
         Args(

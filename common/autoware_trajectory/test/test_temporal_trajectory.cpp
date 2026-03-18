@@ -108,7 +108,7 @@ TEST(temporal_trajectory, set_stopline_with_time_extends_schedule)
     make_point(0.0, 0.0), make_point(1.0, 1.0), make_point(2.0, 2.0), make_point(3.0, 3.0)};
 
   auto trajectory = TemporalTrajectory::Builder{}.build(points).value();
-  trajectory.set_stopline(1.5, 3.0);
+  trajectory.set_stopline(1.5, 1.5);
 
   const auto stop_point = trajectory.compute_from_time(3.0);
   EXPECT_NEAR(stop_point.pose.position.x, 1.5, 1e-3);
@@ -125,7 +125,7 @@ TEST(temporal_trajectory, distance_to_time_returns_first_stop_time)
     make_point(0.0, 0.0), make_point(1.0, 1.0), make_point(2.0, 2.0), make_point(3.0, 3.0)};
 
   auto trajectory = TemporalTrajectory::Builder{}.build(points).value();
-  trajectory.set_stopline(1.5, 3.0);
+  trajectory.set_stopline(1.5, 1.5);
 
   const auto stop_time = trajectory.distance_to_time(1.5);
   ASSERT_TRUE(stop_time.has_value());

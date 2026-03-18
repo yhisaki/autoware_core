@@ -42,14 +42,44 @@ builtin_interfaces::msg::Duration to_duration_msg(const double seconds)
   return rclcpp::Duration::from_seconds(seconds);
 }
 
-void set_zero_velocity(autoware_planning_msgs::msg::TrajectoryPoint & point)
-{
-  point.longitudinal_velocity_mps = 0.0F;
-}
-
 bool has_same_time(const double lhs, const double rhs)
 {
   return std::abs(lhs - rhs) <= k_same_time_threshold;
+}
+
+size_t find_time_index(const std::vector<double> & time_bases, const double time)
+{
+  return static_cast<size_t>(std::distance(
+    time_bases.begin(), std::lower_bound(time_bases.begin(), time_bases.end(), time)));
+}
+
+size_t insert_or_replace_point_at_time(
+  std::vector<autoware_planning_msgs::msg::TrajectoryPoint> & points,
+  const std::vector<double> & time_bases, const double time,
+  const autoware_planning_msgs::msg::TrajectoryPoint & point)
+{
+  const auto insert_index = find_time_index(time_bases, time);
+  if (insert_index == time_bases.size() || !has_same_time(time_bases[insert_index], time)) {
+    points.insert(points.begin() + static_cast<std::ptrdiff_t>(insert_index), point);
+    return insert_index;
+  }
+  points[insert_index] = point;
+  return insert_index;
+}
+
+bool has_time_base(const std::vector<double> & time_bases, const double time)
+{
+  const auto index = find_time_index(time_bases, time);
+  return index < time_bases.size() && has_same_time(time_bases[index], time);
+}
+
+TemporalTrajectory::PointType make_stop_point(
+  const TemporalTrajectory::SpatialTrajectory & stopped_spatial_trajectory, const double arc_length,
+  const double stop_time)
+{
+  auto stop_point = stopped_spatial_trajectory.compute(arc_length);
+  stop_point.time_from_start = to_duration_msg(stop_time);
+  return stop_point;
 }
 }  // namespace
 
@@ -299,49 +329,49 @@ void TemporalTrajectory::set_stopline(const double arc_length)
     return;
   }
 
-  auto points = compute_from_time(time_bases_);
-  auto stop_point = compute_from_distance(arc_length);
-  set_zero_velocity(stop_point);
+  auto stopped_spatial_trajectory = spatial_trajectory_;
+  stopped_spatial_trajectory.set_stopline(arc_length);
 
-  const auto insert_index = static_cast<size_t>(std::distance(
-    time_bases_.begin(), std::lower_bound(time_bases_.begin(), time_bases_.end(), *stop_time)));
-
-  if (insert_index == time_bases_.size() || !has_same_time(time_bases_[insert_index], *stop_time)) {
-    points.insert(points.begin() + static_cast<std::ptrdiff_t>(insert_index), stop_point);
-  } else {
-    points[insert_index] = stop_point;
-  }
+  const auto original_points = compute_from_time(time_bases_);
+  auto points = original_points;
+  const auto stop_point = make_stop_point(stopped_spatial_trajectory, arc_length, *stop_time);
+  const auto has_existing_stop_time = has_time_base(time_bases_, *stop_time);
+  const auto insert_index =
+    insert_or_replace_point_at_time(points, time_bases_, *stop_time, stop_point);
 
   for (size_t i = insert_index; i < points.size(); ++i) {
-    points[i].pose = stop_point.pose;
-    set_zero_velocity(points[i]);
+    points[i] = stop_point;
+    if (i == insert_index) {
+      points[i].time_from_start = to_duration_msg(*stop_time);
+      continue;
+    }
+
+    const auto original_index = has_existing_stop_time ? i : i - 1;
+    points[i].time_from_start = original_points[original_index].time_from_start;
   }
 
   (void)build(points);
 }
 
-void TemporalTrajectory::set_stopline(const double arc_length, const double time)
+void TemporalTrajectory::set_stopline(const double arc_length, const double duration)
 {
   const auto stop_time = distance_to_time(arc_length);
   if (!stop_time.has_value()) {
     return;
   }
 
-  const auto target_time = std::max(time, *stop_time);
-  auto points = compute_from_time(time_bases_);
-  auto stop_point = compute_from_distance(arc_length);
-  set_zero_velocity(stop_point);
+  const auto stop_duration = std::max(duration, 0.0);
+  const auto target_time = *stop_time + stop_duration;
+  auto stopped_spatial_trajectory = spatial_trajectory_;
+  stopped_spatial_trajectory.set_stopline(arc_length);
 
-  const auto insert_index = static_cast<size_t>(std::distance(
-    time_bases_.begin(), std::lower_bound(time_bases_.begin(), time_bases_.end(), *stop_time)));
+  const auto original_points = compute_from_time(time_bases_);
+  auto points = original_points;
+  const auto stop_point = make_stop_point(stopped_spatial_trajectory, arc_length, *stop_time);
+  const auto has_existing_stop_time = has_time_base(time_bases_, *stop_time);
+  const auto insert_index =
+    insert_or_replace_point_at_time(points, time_bases_, *stop_time, stop_point);
 
-  if (insert_index == time_bases_.size() || !has_same_time(time_bases_[insert_index], *stop_time)) {
-    points.insert(points.begin() + static_cast<std::ptrdiff_t>(insert_index), stop_point);
-  } else {
-    points[insert_index] = stop_point;
-  }
-
-  const auto stop_duration = target_time - *stop_time;
   if (stop_duration > k_same_time_threshold) {
     auto delayed_stop_point = stop_point;
     delayed_stop_point.time_from_start = to_duration_msg(target_time);
@@ -349,7 +379,9 @@ void TemporalTrajectory::set_stopline(const double arc_length, const double time
       points.begin() + static_cast<std::ptrdiff_t>(insert_index + 1), delayed_stop_point);
 
     for (size_t i = insert_index + 2; i < points.size(); ++i) {
-      const auto shifted_time = to_seconds(points[i].time_from_start) + stop_duration;
+      const auto original_index = has_existing_stop_time ? i - 1 : i - 2;
+      const auto shifted_time =
+        to_seconds(original_points[original_index].time_from_start) + stop_duration;
       points[i].time_from_start = to_duration_msg(shifted_time);
     }
   }
