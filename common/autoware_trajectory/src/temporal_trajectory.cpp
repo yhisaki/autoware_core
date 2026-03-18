@@ -14,8 +14,10 @@
 
 #include "autoware/trajectory/temporal_trajectory.hpp"
 
+#include "autoware/trajectory/detail/helpers.hpp"
 #include "autoware/trajectory/interpolator/linear.hpp"
 #include "autoware/trajectory/threshold.hpp"
+#include "autoware/trajectory/utils/temporal/find_stop_points.hpp"
 
 #include <rclcpp/duration.hpp>
 #include <rclcpp/logging.hpp>
@@ -47,7 +49,7 @@ void set_zero_velocity(autoware_planning_msgs::msg::TrajectoryPoint & point)
 
 bool has_same_time(const double lhs, const double rhs)
 {
-  return std::abs(lhs - rhs) <= k_epsilon;
+  return std::abs(lhs - rhs) <= k_same_time_threshold;
 }
 }  // namespace
 
@@ -112,8 +114,8 @@ interpolator::InterpolationResult TemporalTrajectory::build(const std::vector<Po
   for (size_t i = 0; i < time_bases_.size(); ++i) {
     if (
       !sanitized_time_bases.empty() &&
-      std::abs(time_bases_[i] - sanitized_time_bases.back()) <= k_epsilon) {
-      if (std::abs(distance_bases_[i] - sanitized_distance_bases.back()) > k_epsilon) {
+      std::abs(time_bases_[i] - sanitized_time_bases.back()) <= k_same_time_threshold) {
+      if (std::abs(distance_bases_[i] - sanitized_distance_bases.back()) > k_same_time_threshold) {
         return tl::unexpected(interpolator::InterpolationFailure{
           "time_from_start contains duplicate timestamps with different distances"});
       }
@@ -221,42 +223,72 @@ std::optional<double> TemporalTrajectory::distance_to_time(const double s) const
     return std::nullopt;
   }
 
-  for (size_t i = 0; i + 1 < distance_bases_.size(); ++i) {
-    const auto s0 = distance_bases_[i];
-    const auto s1 = distance_bases_[i + 1];
-    if (s_clamped < s0 - k_epsilon || s_clamped > s1 + k_epsilon) {
-      continue;
+  for (const auto & stop_point : find_stop_points(*this)) {
+    if (std::abs(s_clamped - stop_point.distance) <= k_same_time_threshold) {
+      return stop_point.start_time;
     }
-
-    const auto t0 = time_bases_[i];
-    const auto t1 = time_bases_[i + 1];
-    if (std::abs(s1 - s0) <= k_epsilon) {
-      return t0;
-    }
-
-    const auto ratio = (s_clamped - s0) / (s1 - s0);
-    return t0 + ratio * (t1 - t0);
   }
 
-  if (std::abs(s_clamped - distance_bases_.back()) <= k_epsilon) {
-    return time_bases_.back();
+  const auto start_time = time_bases_.front();
+  const auto end_time = time_bases_.back();
+  const auto start_distance = time_to_distance_->compute(start_time);
+  const auto end_distance = time_to_distance_->compute(end_time);
+
+  if (
+    s_clamped < start_distance - k_same_time_threshold ||
+    s_clamped > end_distance + k_same_time_threshold) {
+    return std::nullopt;
   }
 
-  return std::nullopt;
+  if (std::abs(s_clamped - start_distance) <= k_same_time_threshold) {
+    return start_time;
+  }
+
+  if (std::abs(s_clamped - end_distance) <= k_same_time_threshold) {
+    return end_time;
+  }
+
+  auto lower_time = start_time;
+  auto upper_time = end_time;
+  constexpr size_t k_max_iterations = 100;
+  for (size_t i = 0; i < k_max_iterations; ++i) {
+    const auto mid_time = 0.5 * (lower_time + upper_time);
+    const auto mid_distance = time_to_distance_->compute(mid_time);
+
+    if (std::abs(mid_distance - s_clamped) <= k_same_time_threshold) {
+      return mid_time;
+    }
+
+    if (mid_distance < s_clamped) {
+      lower_time = mid_time;
+    } else {
+      upper_time = mid_time;
+    }
+
+    if (upper_time - lower_time <= k_same_time_threshold) {
+      break;
+    }
+  }
+
+  return 0.5 * (lower_time + upper_time);
 }
 
 std::vector<TemporalTrajectory::PointType> TemporalTrajectory::restore(
   const size_t min_points) const
 {
-  std::vector<double> time_samples = time_bases_;
-  if (min_points > 1 && time_samples.size() < min_points && !time_samples.empty()) {
-    const auto step = duration() / static_cast<double>(min_points - 1);
-    time_samples.clear();
-    time_samples.reserve(min_points);
-    for (size_t i = 0; i < min_points; ++i) {
-      time_samples.push_back(time_bases_.front() + step * static_cast<double>(i));
+  if (time_bases_.empty()) {
+    return {};
+  }
+
+  std::vector<double> sanitized_time_bases;
+  sanitized_time_bases.reserve(time_bases_.size());
+  for (const auto t : time_bases_) {
+    if (sanitized_time_bases.empty() || !has_same_time(t, sanitized_time_bases.back())) {
+      sanitized_time_bases.push_back(t);
     }
   }
+
+  const auto time_samples = detail::fill_bases(sanitized_time_bases, min_points);
   return compute_from_time(time_samples);
 }
 
@@ -310,7 +342,7 @@ void TemporalTrajectory::set_stopline(const double arc_length, const double time
   }
 
   const auto stop_duration = target_time - *stop_time;
-  if (stop_duration > k_epsilon) {
+  if (stop_duration > k_same_time_threshold) {
     auto delayed_stop_point = stop_point;
     delayed_stop_point.time_from_start = to_duration_msg(target_time);
     points.insert(

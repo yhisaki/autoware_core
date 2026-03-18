@@ -118,3 +118,16 @@ TEST(temporal_trajectory, set_stopline_with_time_extends_schedule)
   const auto point_after_stop = trajectory.compute_from_time(4.0);
   EXPECT_GT(point_after_stop.pose.position.x, 1.5);
 }
+
+TEST(temporal_trajectory, distance_to_time_returns_first_stop_time)
+{
+  const std::vector<TrajectoryPoint> points{
+    make_point(0.0, 0.0), make_point(1.0, 1.0), make_point(2.0, 2.0), make_point(3.0, 3.0)};
+
+  auto trajectory = TemporalTrajectory::Builder{}.build(points).value();
+  trajectory.set_stopline(1.5, 3.0);
+
+  const auto stop_time = trajectory.distance_to_time(1.5);
+  ASSERT_TRUE(stop_time.has_value());
+  EXPECT_NEAR(*stop_time, 1.5, 1e-6);
+}

@@ -32,6 +32,8 @@
 using autoware::experimental::trajectory::TemporalTrajectory;
 using autoware_planning_msgs::msg::TrajectoryPoint;
 
+constexpr int min_restore_points = 30;
+
 TrajectoryPoint make_point(const double x, const double y, const double time_from_start)
 {
   TrajectoryPoint point;
@@ -58,7 +60,7 @@ TemporalTrajectory build_temporal_trajectory()
 
 std::pair<std::vector<double>, std::vector<double>> sample_xy(const TemporalTrajectory & trajectory)
 {
-  const auto points = trajectory.restore(300);
+  const auto points = trajectory.restore(min_restore_points);
   std::vector<double> x;
   std::vector<double> y;
   x.reserve(points.size());
@@ -73,7 +75,7 @@ std::pair<std::vector<double>, std::vector<double>> sample_xy(const TemporalTraj
 std::pair<std::vector<double>, std::vector<double>> sample_time_distance(
   const TemporalTrajectory & trajectory)
 {
-  const auto points = trajectory.restore(300);
+  const auto points = trajectory.restore(min_restore_points);
   std::vector<double> time;
   std::vector<double> distance;
   time.reserve(points.size());
@@ -89,7 +91,7 @@ std::pair<std::vector<double>, std::vector<double>> sample_time_distance(
 std::pair<std::vector<double>, std::vector<double>> sample_time_velocity(
   const TemporalTrajectory & trajectory)
 {
-  const auto points = trajectory.restore(300);
+  const auto points = trajectory.restore(min_restore_points);
   std::vector<double> time;
   std::vector<double> velocity;
   time.reserve(points.size());
@@ -106,20 +108,14 @@ void plot_spatial_trajectory(
   const std::string & color)
 {
   const auto [x, y] = sample_xy(trajectory);
-  ax.plot(
-    Args(x, y), Kwargs(
-                  "label"_a = label, "color"_a = color, "linewidth"_a = 2.5, "marker"_a = "o",
-                  "markersize"_a = 4.0, "markevery"_a = 20));
+  ax.plot(Args(x, y), Kwargs("label"_a = label, "color"_a = color, "marker"_a = "o"));
 }
 
 void plot_time_series(
   autoware::pyplot::Axes & ax, const std::vector<double> & x, const std::vector<double> & y,
   const std::string & label, const std::string & color)
 {
-  ax.plot(
-    Args(x, y), Kwargs(
-                  "label"_a = label, "color"_a = color, "linewidth"_a = 2.5, "marker"_a = "o",
-                  "markersize"_a = 4.0, "markevery"_a = 20));
+  ax.plot(Args(x, y), Kwargs("label"_a = label, "color"_a = color, "marker"_a = "o"));
 }
 
 int main()
@@ -180,8 +176,7 @@ int main()
   {
     auto ax = axes[1];
     plot_time_series(ax, original_time, original_distance, "original", "navy");
-    // plot_time_series(ax, immediate_time, immediate_distance, "set_stopline(length)",
-    // "darkorange");
+    plot_time_series(ax, immediate_time, immediate_distance, "set_stopline(length)", "darkorange");
     plot_time_series(ax, wait_time, wait_distance, "set_stopline(length, time)", "crimson");
     ax.scatter(
       Args(
@@ -198,8 +193,7 @@ int main()
   {
     auto ax = axes[2];
     plot_time_series(ax, original_vel_time, original_vel, "original", "navy");
-    // plot_time_series(ax, immediate_vel_time, immediate_vel, "set_stopline(length)",
-    // "darkorange");
+    plot_time_series(ax, immediate_vel_time, immediate_vel, "set_stopline(length)", "darkorange");
     plot_time_series(ax, wait_vel_time, wait_vel, "set_stopline(length, time)", "crimson");
     if (!wait_stop_points.empty()) {
       ax.plot(
