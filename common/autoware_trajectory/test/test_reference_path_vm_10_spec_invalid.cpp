@@ -72,10 +72,9 @@ static void savefig(
   autoware_internal_planning_msgs::msg::PathWithLaneId path;
   path.points = reference_path.restore();
   autoware::test_utils::plot_autoware_object(path, ax, path_plot_config);
-  ax.set_title(Args(
-    fmt::format(
-      "forward = {}, backward = {}(actual length = {})", forward, backward,
-      reference_path.length())));
+  ax.set_title(Args(fmt::format(
+    "forward = {}, backward = {}(actual length = {})", forward, backward,
+    reference_path.length())));
   for (const auto & route_lanelet : lanelet_sequence) {
     autoware::test_utils::plot_lanelet2_object(route_lanelet, ax, lane_plot_config);
   }
@@ -86,7 +85,7 @@ static void savefig(
   plt.savefig(Args(filename));
 }
 
-class TestWithVM_01_10_12_Map : public ::testing::Test  // NOLINT
+class TestWithVM_01_10_12_Map_Invalid : public ::testing::Test  // NOLINT
 {
 protected:
   void SetUp() override
@@ -119,7 +118,7 @@ protected:
   lanelet::traffic_rules::TrafficRulesPtr traffic_rules_{nullptr};
 };
 
-TEST_F(TestWithVM_01_10_12_Map, from_P0_on_entire_lanes)  // NOLINT
+TEST_F(TestWithVM_01_10_12_Map_Invalid, from_P0_on_entire_lanes)  // NOLINT
 {
   const std::vector<lanelet::Id> ids = {60, 57, 56, 58, 59, 55};
   const auto ego_pose = P0;
@@ -150,12 +149,11 @@ TEST_F(TestWithVM_01_10_12_Map, from_P0_on_entire_lanes)  // NOLINT
       autoware_utils_geometry::calc_distance3d(p1, p2) >=
       autoware::experimental::trajectory::k_points_minimum_dist_threshold);
     EXPECT_TRUE(
-      std::fabs(
-        autoware_utils_math::normalize_radian(
-          autoware_utils_geometry::calc_azimuth_angle(
-            p1.point.pose.position, p2.point.pose.position) -
-          autoware_utils_geometry::calc_azimuth_angle(
-            p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
+      std::fabs(autoware_utils_math::normalize_radian(
+        autoware_utils_geometry::calc_azimuth_angle(
+          p1.point.pose.position, p2.point.pose.position) -
+        autoware_utils_geometry::calc_azimuth_angle(
+          p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
   }
 
   //
@@ -258,7 +256,7 @@ TEST_F(TestWithVM_01_10_12_Map, from_P0_on_entire_lanes)  // NOLINT
 #endif
 }
 
-TEST_F(TestWithVM_01_10_12_Map, from_P1_on_entire_lanes)
+TEST_F(TestWithVM_01_10_12_Map_Invalid, from_P1_on_entire_lanes)
 {
   const std::vector<lanelet::Id> ids = {60, 57, 56, 58, 59, 55};
   const auto ego_pose = P1;
@@ -289,12 +287,11 @@ TEST_F(TestWithVM_01_10_12_Map, from_P1_on_entire_lanes)
       autoware_utils_geometry::calc_distance3d(p1, p2) >=
       autoware::experimental::trajectory::k_points_minimum_dist_threshold);
     EXPECT_TRUE(
-      std::fabs(
-        autoware_utils_math::normalize_radian(
-          autoware_utils_geometry::calc_azimuth_angle(
-            p1.point.pose.position, p2.point.pose.position) -
-          autoware_utils_geometry::calc_azimuth_angle(
-            p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
+      std::fabs(autoware_utils_math::normalize_radian(
+        autoware_utils_geometry::calc_azimuth_angle(
+          p1.point.pose.position, p2.point.pose.position) -
+        autoware_utils_geometry::calc_azimuth_angle(
+          p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
   }
 
   //
@@ -397,7 +394,7 @@ TEST_F(TestWithVM_01_10_12_Map, from_P1_on_entire_lanes)
 #endif
 }
 
-TEST_F(TestWithVM_01_10_12_Map, from_P2_on_entire_lanes)
+TEST_F(TestWithVM_01_10_12_Map_Invalid, from_P2_on_entire_lanes)
 {
   const std::vector<lanelet::Id> ids = {60, 57, 56, 58, 59, 55};
   const auto ego_pose = P2;
@@ -428,12 +425,11 @@ TEST_F(TestWithVM_01_10_12_Map, from_P2_on_entire_lanes)
       autoware_utils_geometry::calc_distance3d(p1, p2) >=
       autoware::experimental::trajectory::k_points_minimum_dist_threshold);
     EXPECT_TRUE(
-      std::fabs(
-        autoware_utils_math::normalize_radian(
-          autoware_utils_geometry::calc_azimuth_angle(
-            p1.point.pose.position, p2.point.pose.position) -
-          autoware_utils_geometry::calc_azimuth_angle(
-            p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
+      std::fabs(autoware_utils_math::normalize_radian(
+        autoware_utils_geometry::calc_azimuth_angle(
+          p1.point.pose.position, p2.point.pose.position) -
+        autoware_utils_geometry::calc_azimuth_angle(
+          p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
   }
 
   //
@@ -536,7 +532,7 @@ TEST_F(TestWithVM_01_10_12_Map, from_P2_on_entire_lanes)
 #endif
 }
 
-TEST_F(TestWithVM_01_10_12_Map, from_P3_on_entire_lanes)
+TEST_F(TestWithVM_01_10_12_Map_Invalid, from_P3_on_entire_lanes)
 {
   const std::vector<lanelet::Id> ids = {60, 57, 56, 58, 59, 55};
   const auto ego_pose = P3;
@@ -567,12 +563,11 @@ TEST_F(TestWithVM_01_10_12_Map, from_P3_on_entire_lanes)
       autoware_utils_geometry::calc_distance3d(p1, p2) >=
       autoware::experimental::trajectory::k_points_minimum_dist_threshold);
     EXPECT_TRUE(
-      std::fabs(
-        autoware_utils_math::normalize_radian(
-          autoware_utils_geometry::calc_azimuth_angle(
-            p1.point.pose.position, p2.point.pose.position) -
-          autoware_utils_geometry::calc_azimuth_angle(
-            p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
+      std::fabs(autoware_utils_math::normalize_radian(
+        autoware_utils_geometry::calc_azimuth_angle(
+          p1.point.pose.position, p2.point.pose.position) -
+        autoware_utils_geometry::calc_azimuth_angle(
+          p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
   }
 
   //
@@ -675,7 +670,7 @@ TEST_F(TestWithVM_01_10_12_Map, from_P3_on_entire_lanes)
 #endif
 }
 
-TEST_F(TestWithVM_01_10_12_Map, from_P4_on_entire_lanes)
+TEST_F(TestWithVM_01_10_12_Map_Invalid, from_P4_on_entire_lanes)
 {
   const std::vector<lanelet::Id> ids = {60, 57, 56, 58, 59, 55};
   const auto ego_pose = P4;
@@ -706,12 +701,11 @@ TEST_F(TestWithVM_01_10_12_Map, from_P4_on_entire_lanes)
       autoware_utils_geometry::calc_distance3d(p1, p2) >=
       autoware::experimental::trajectory::k_points_minimum_dist_threshold);
     EXPECT_TRUE(
-      std::fabs(
-        autoware_utils_math::normalize_radian(
-          autoware_utils_geometry::calc_azimuth_angle(
-            p1.point.pose.position, p2.point.pose.position) -
-          autoware_utils_geometry::calc_azimuth_angle(
-            p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
+      std::fabs(autoware_utils_math::normalize_radian(
+        autoware_utils_geometry::calc_azimuth_angle(
+          p1.point.pose.position, p2.point.pose.position) -
+        autoware_utils_geometry::calc_azimuth_angle(
+          p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
   }
 
   //
@@ -814,7 +808,7 @@ TEST_F(TestWithVM_01_10_12_Map, from_P4_on_entire_lanes)
 #endif
 }
 
-TEST_F(TestWithVM_01_10_12_Map, from_P1_forward_on_entire_lanes)
+TEST_F(TestWithVM_01_10_12_Map_Invalid, from_P1_forward_on_entire_lanes)
 {
   const std::vector<lanelet::Id> ids = {60, 57, 56, 58, 59, 55};
   const auto ego_pose = P1;
@@ -845,12 +839,11 @@ TEST_F(TestWithVM_01_10_12_Map, from_P1_forward_on_entire_lanes)
       autoware_utils_geometry::calc_distance3d(p1, p2) >=
       autoware::experimental::trajectory::k_points_minimum_dist_threshold);
     EXPECT_TRUE(
-      std::fabs(
-        autoware_utils_math::normalize_radian(
-          autoware_utils_geometry::calc_azimuth_angle(
-            p1.point.pose.position, p2.point.pose.position) -
-          autoware_utils_geometry::calc_azimuth_angle(
-            p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
+      std::fabs(autoware_utils_math::normalize_radian(
+        autoware_utils_geometry::calc_azimuth_angle(
+          p1.point.pose.position, p2.point.pose.position) -
+        autoware_utils_geometry::calc_azimuth_angle(
+          p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
   }
 
   //
@@ -940,7 +933,7 @@ TEST_F(TestWithVM_01_10_12_Map, from_P1_forward_on_entire_lanes)
 #endif
 }
 
-TEST_F(TestWithVM_01_10_12_Map, from_P2_forward_on_entire_lanes)
+TEST_F(TestWithVM_01_10_12_Map_Invalid, from_P2_forward_on_entire_lanes)
 {
   const std::vector<lanelet::Id> ids = {60, 57, 56, 58, 59, 55};
   const auto ego_pose = P2;
@@ -971,12 +964,11 @@ TEST_F(TestWithVM_01_10_12_Map, from_P2_forward_on_entire_lanes)
       autoware_utils_geometry::calc_distance3d(p1, p2) >=
       autoware::experimental::trajectory::k_points_minimum_dist_threshold);
     EXPECT_TRUE(
-      std::fabs(
-        autoware_utils_math::normalize_radian(
-          autoware_utils_geometry::calc_azimuth_angle(
-            p1.point.pose.position, p2.point.pose.position) -
-          autoware_utils_geometry::calc_azimuth_angle(
-            p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
+      std::fabs(autoware_utils_math::normalize_radian(
+        autoware_utils_geometry::calc_azimuth_angle(
+          p1.point.pose.position, p2.point.pose.position) -
+        autoware_utils_geometry::calc_azimuth_angle(
+          p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
   }
 
   //
@@ -1040,7 +1032,7 @@ TEST_F(TestWithVM_01_10_12_Map, from_P2_forward_on_entire_lanes)
 #endif
 }
 
-TEST_F(TestWithVM_01_10_12_Map, from_P3_forward_on_entire_lanes)
+TEST_F(TestWithVM_01_10_12_Map_Invalid, from_P3_forward_on_entire_lanes)
 {
   const std::vector<lanelet::Id> ids = {60, 57, 56, 58, 59, 55};
   const auto ego_pose = P3;
@@ -1071,12 +1063,11 @@ TEST_F(TestWithVM_01_10_12_Map, from_P3_forward_on_entire_lanes)
       autoware_utils_geometry::calc_distance3d(p1, p2) >=
       autoware::experimental::trajectory::k_points_minimum_dist_threshold);
     EXPECT_TRUE(
-      std::fabs(
-        autoware_utils_math::normalize_radian(
-          autoware_utils_geometry::calc_azimuth_angle(
-            p1.point.pose.position, p2.point.pose.position) -
-          autoware_utils_geometry::calc_azimuth_angle(
-            p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
+      std::fabs(autoware_utils_math::normalize_radian(
+        autoware_utils_geometry::calc_azimuth_angle(
+          p1.point.pose.position, p2.point.pose.position) -
+        autoware_utils_geometry::calc_azimuth_angle(
+          p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
   }
 
   //
@@ -1140,7 +1131,7 @@ TEST_F(TestWithVM_01_10_12_Map, from_P3_forward_on_entire_lanes)
 #endif
 }
 
-TEST_F(TestWithVM_01_10_12_Map, from_P4_forward_on_entire_lanes)
+TEST_F(TestWithVM_01_10_12_Map_Invalid, from_P4_forward_on_entire_lanes)
 {
   const std::vector<lanelet::Id> ids = {60, 57, 56, 58, 59, 55};
   const auto ego_pose = P4;
@@ -1171,12 +1162,11 @@ TEST_F(TestWithVM_01_10_12_Map, from_P4_forward_on_entire_lanes)
       autoware_utils_geometry::calc_distance3d(p1, p2) >=
       autoware::experimental::trajectory::k_points_minimum_dist_threshold);
     EXPECT_TRUE(
-      std::fabs(
-        autoware_utils_math::normalize_radian(
-          autoware_utils_geometry::calc_azimuth_angle(
-            p1.point.pose.position, p2.point.pose.position) -
-          autoware_utils_geometry::calc_azimuth_angle(
-            p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
+      std::fabs(autoware_utils_math::normalize_radian(
+        autoware_utils_geometry::calc_azimuth_angle(
+          p1.point.pose.position, p2.point.pose.position) -
+        autoware_utils_geometry::calc_azimuth_angle(
+          p2.point.pose.position, p3.point.pose.position))) < M_PI / 2.0);
   }
 
   //
@@ -1228,12 +1218,3 @@ TEST_F(TestWithVM_01_10_12_Map, from_P4_forward_on_entire_lanes)
 }
 
 }  // namespace autoware::experimental
-
-int main(int argc, char ** argv)
-{
-#ifdef PLOT
-  pybind11::scoped_interpreter guard{};
-#endif
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
