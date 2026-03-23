@@ -14,6 +14,7 @@
 
 #include "autoware/trajectory/temporal_trajectory.hpp"
 #include "autoware/trajectory/utils/crossed.hpp"
+#include "autoware/trajectory/utils/pretty_build.hpp"
 #include "autoware/trajectory/utils/temporal/find_stop_points.hpp"
 
 #include <autoware/pyplot/pyplot.hpp>
@@ -51,11 +52,11 @@ TemporalTrajectory build_temporal_trajectory()
                                             make_point(4.8, 2.6, 3.4), make_point(6.2, 2.2, 4.3),
                                             make_point(7.6, 1.0, 5.2)};
 
-  auto trajectory = TemporalTrajectory::Builder{}.build(points);
+  auto trajectory = autoware::experimental::trajectory::pretty_build_temporal(points);
   if (!trajectory) {
-    throw std::runtime_error(trajectory.error().what);
+    throw std::runtime_error("failed to pretty-build temporal trajectory");
   }
-  return trajectory.value();
+  return *trajectory;
 }
 
 std::pair<std::vector<double>, std::vector<double>> sample_xy(const TemporalTrajectory & trajectory)

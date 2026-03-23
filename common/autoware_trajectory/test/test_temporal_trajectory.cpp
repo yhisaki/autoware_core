@@ -58,6 +58,8 @@ TEST(temporal_trajectory, compute_from_time_and_distance)
   const auto time = trajectory.distance_to_time(2.5);
   ASSERT_TRUE(time.has_value());
   EXPECT_NEAR(*time, 3.0, 1e-6);
+  EXPECT_NEAR(trajectory.start_time(), 0.0, 1e-6);
+  EXPECT_NEAR(trajectory.end_time(), 4.0, 1e-6);
 }
 
 TEST(temporal_trajectory, duplicate_timestamp_with_different_distance_fails)
@@ -85,6 +87,22 @@ TEST(temporal_trajectory, crossed_uses_spatial_trajectory)
   const auto crossed_points = autoware::experimental::trajectory::crossed(trajectory, line_string);
   ASSERT_EQ(crossed_points.size(), 1U);
   EXPECT_NEAR(crossed_points.front(), 1.5, 1e-6);
+}
+
+TEST(temporal_trajectory, crop_time_rebases_time_axis)
+{
+  const std::vector<TrajectoryPoint> points{
+    make_point(0.0, -1.0), make_point(1.0, 0.0), make_point(2.0, 1.0), make_point(3.0, 2.0)};
+
+  auto trajectory = TemporalTrajectory::Builder{}.build(points).value();
+  trajectory.crop_time(0.0, 2.0);
+
+  const auto restored = trajectory.restore(4);
+  ASSERT_FALSE(restored.empty());
+  EXPECT_NEAR(rclcpp::Duration(restored.front().time_from_start).seconds(), 0.0, 1e-6);
+  EXPECT_NEAR(restored.front().pose.position.x, 1.0, 1e-6);
+  EXPECT_NEAR(rclcpp::Duration(restored.back().time_from_start).seconds(), 2.0, 1e-6);
+  EXPECT_NEAR(restored.back().pose.position.x, 3.0, 1e-6);
 }
 
 TEST(temporal_trajectory, set_stopline_collapses_following_points)

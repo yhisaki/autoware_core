@@ -27,7 +27,6 @@
 #include <memory>
 #include <utility>
 #include <vector>
-
 namespace autoware::experimental::trajectory
 {
 namespace
@@ -178,6 +177,16 @@ double TemporalTrajectory::duration() const
   return time_bases_.empty() ? 0.0 : time_bases_.back() - time_bases_.front();
 }
 
+double TemporalTrajectory::start_time() const
+{
+  return time_bases_.empty() ? 0.0 : time_bases_.front();
+}
+
+double TemporalTrajectory::end_time() const
+{
+  return time_bases_.empty() ? 0.0 : time_bases_.back();
+}
+
 std::vector<double> TemporalTrajectory::get_underlying_time_bases() const
 {
   return time_bases_;
@@ -320,6 +329,45 @@ std::vector<TemporalTrajectory::PointType> TemporalTrajectory::restore(
 
   const auto time_samples = detail::fill_bases(sanitized_time_bases, min_points);
   return compute_from_time(time_samples);
+}
+
+void TemporalTrajectory::crop_time(const double start_time, const double duration)
+{
+  if (time_bases_.empty() || duration <= k_same_time_threshold) {
+    return;
+  }
+
+  const auto absolute_start_time = clamp_time(start_time, false);
+  const auto absolute_end_time = clamp_time(start_time + duration, false);
+  if (absolute_end_time - absolute_start_time <= k_same_time_threshold) {
+    return;
+  }
+
+  std::vector<double> time_samples;
+  time_samples.reserve(time_bases_.size() + 2);
+  time_samples.push_back(absolute_start_time);
+
+  for (const auto t : time_bases_) {
+    if (t <= absolute_start_time + k_same_time_threshold) {
+      continue;
+    }
+    if (t >= absolute_end_time - k_same_time_threshold) {
+      continue;
+    }
+    time_samples.push_back(t);
+  }
+  time_samples.push_back(absolute_end_time);
+
+  const auto filled_time_samples = detail::fill_bases(time_samples, 4);
+  std::vector<PointType> points;
+  points.reserve(filled_time_samples.size());
+  for (const auto t : filled_time_samples) {
+    auto point = compute_from_time(t);
+    point.time_from_start = to_duration_msg(t - absolute_start_time);
+    points.push_back(point);
+  }
+
+  (void)build(points);
 }
 
 void TemporalTrajectory::set_stopline(const double arc_length)

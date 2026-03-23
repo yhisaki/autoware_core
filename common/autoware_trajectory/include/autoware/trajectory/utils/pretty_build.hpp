@@ -21,6 +21,7 @@
 #include "autoware/trajectory/interpolator/linear.hpp"
 #include "autoware/trajectory/interpolator/spherical_linear.hpp"
 #include "autoware/trajectory/path_point_with_lane_id.hpp"
+#include "autoware/trajectory/temporal_trajectory.hpp"
 #include "autoware/trajectory/trajectory_point.hpp"
 #include "autoware_utils_geometry/geometry.hpp"
 
@@ -91,6 +92,10 @@ std::optional<Trajectory<PointType>> pretty_build(
   }
   return try_trajectory.value();
 }
+
+std::optional<TemporalTrajectory> pretty_build_temporal(
+  const std::vector<autoware_planning_msgs::msg::TrajectoryPoint> & points,
+  const bool use_akima = false);
 
 namespace detail
 {

@@ -71,15 +71,6 @@ if(BUILD_TESTING)
   find_package(range-v3 REQUIRED)
 
   # ---------------------------------------------------------------------------
-  # Helper: register a gtest target
-  # ---------------------------------------------------------------------------
-  function(add_trajectory_test test_file)
-    get_filename_component(_name ${test_file} NAME_WE)
-    ament_auto_add_gtest(${_name} ${test_file})
-    target_link_libraries(${_name} fmt::fmt Python3::Python pybind11::embed yaml-cpp)
-  endfunction()
-
-  # ---------------------------------------------------------------------------
   # Helper: register an example executable
   # ---------------------------------------------------------------------------
   function(add_trajectory_example example_file)

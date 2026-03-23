@@ -14,11 +14,137 @@
 
 #include "autoware/trajectory/utils/pretty_build.hpp"
 
+#include <rclcpp/duration.hpp>
+
 #include <string>
 #include <vector>
 
 namespace autoware::experimental::trajectory
 {
+
+namespace
+{
+double to_seconds(const builtin_interfaces::msg::Duration & duration)
+{
+  return rclcpp::Duration(duration).seconds();
+}
+
+builtin_interfaces::msg::Duration to_duration_msg(const double seconds)
+{
+  return rclcpp::Duration::from_seconds(seconds);
+}
+
+template <typename PointType>
+std::vector<double> extract_times(const std::vector<PointType> & points)
+{
+  std::vector<double> times;
+  times.reserve(points.size());
+  for (const auto & point : points) {
+    times.push_back(to_seconds(point.time_from_start));
+  }
+  return times;
+}
+
+template <typename PointType>
+void assign_times(
+  std::vector<PointType> & points, const std::vector<double> & original_bases,
+  const std::vector<double> & original_times, const std::vector<double> & new_bases)
+{
+  interpolator::Linear time_interpolator;
+  const auto result = time_interpolator.build(original_bases, original_times);
+  if (!result) {
+    return;
+  }
+
+  for (size_t i = 0; i < points.size(); ++i) {
+    points[i].time_from_start = to_duration_msg(time_interpolator.compute(new_bases[i]));
+  }
+}
+
+tl::expected<std::vector<autoware_planning_msgs::msg::TrajectoryPoint>, std::string>
+populate3_temporal(const std::vector<autoware_planning_msgs::msg::TrajectoryPoint> & inputs)
+{
+  const auto populated = detail::populate3(inputs);
+  if (!populated) {
+    return tl::unexpected(populated.error());
+  }
+  if (inputs.size() >= 3) {
+    return populated.value();
+  }
+
+  auto points = populated.value();
+  const auto original_bases = std::vector<double>{
+    0.0,
+    autoware_utils_geometry::calc_distance3d(inputs[0].pose.position, inputs[1].pose.position)};
+  const auto new_bases =
+    std::vector<double>{0.0, original_bases.back() / 2.0, original_bases.back()};
+  assign_times(points, original_bases, extract_times(inputs), new_bases);
+  return points;
+}
+
+tl::expected<std::vector<autoware_planning_msgs::msg::TrajectoryPoint>, std::string>
+populate4_temporal(const std::vector<autoware_planning_msgs::msg::TrajectoryPoint> & inputs)
+{
+  if (inputs.size() >= 4) {
+    return inputs;
+  }
+  if (inputs.size() < 2) {
+    return tl::unexpected(std::string("cannot populate4() from less than 1 points!"));
+  }
+
+  const auto try_inputs3 = populate3_temporal(inputs);
+  if (!try_inputs3) {
+    return tl::unexpected(try_inputs3.error());
+  }
+  const auto & inputs3 = inputs.size() == 2 ? try_inputs3.value() : inputs;
+
+  using Builder = typename Trajectory<autoware_planning_msgs::msg::TrajectoryPoint>::Builder;
+  const auto interpolation_result = Builder{}
+                                      .set_xy_interpolator<interpolator::Linear>()
+                                      .set_z_interpolator<interpolator::Linear>()
+                                      .build(inputs3);
+  if (!interpolation_result) {
+    return tl::unexpected(std::string("failed Linear interpolation in populate4()!"));
+  }
+
+  const auto & interpolation = interpolation_result.value();
+  const auto new_bases =
+    detail::insert_middle_into_largest_interval(interpolation.get_underlying_bases());
+  auto points = interpolation.compute(new_bases);
+  assign_times(points, interpolation.get_underlying_bases(), extract_times(inputs3), new_bases);
+  return points;
+}
+
+tl::expected<std::vector<autoware_planning_msgs::msg::TrajectoryPoint>, std::string>
+populate5_temporal(const std::vector<autoware_planning_msgs::msg::TrajectoryPoint> & inputs)
+{
+  if (inputs.size() >= 5) {
+    return inputs;
+  }
+  if (inputs.size() < 2) {
+    return tl::unexpected(std::string("cannot populate5() from less than 1 points!"));
+  }
+
+  const auto try_inputs4 = populate4_temporal(inputs);
+  if (!try_inputs4) {
+    return tl::unexpected(try_inputs4.error());
+  }
+  const auto & inputs4 = inputs.size() == 4 ? inputs : try_inputs4.value();
+
+  using Builder = typename Trajectory<autoware_planning_msgs::msg::TrajectoryPoint>::Builder;
+  const auto interpolation_result = Builder{}.build(inputs4);
+  if (!interpolation_result) {
+    return tl::unexpected(std::string("failed Linear interpolation in populate4()!"));
+  }
+
+  const auto & interpolation = interpolation_result.value();
+  const auto new_bases =
+    detail::insert_middle_into_largest_interval(interpolation.get_underlying_bases());
+  auto points = interpolation.compute(new_bases);
+  assign_times(points, interpolation.get_underlying_bases(), extract_times(inputs4), new_bases);
+  return points;
+}
+}  // namespace
 
 namespace detail
 {
@@ -197,5 +323,37 @@ template std::optional<Trajectory<autoware_planning_msgs::msg::PathPoint>> prett
 template std::optional<Trajectory<autoware_planning_msgs::msg::TrajectoryPoint>> pretty_build(
   const std::vector<autoware_planning_msgs::msg::TrajectoryPoint> & points,
   const bool use_akima = false);
+
+std::optional<TemporalTrajectory> pretty_build_temporal(
+  const std::vector<autoware_planning_msgs::msg::TrajectoryPoint> & points, const bool use_akima)
+{
+  if (use_akima) {
+    const auto try_input5 = populate5_temporal(points);
+    if (!try_input5) {
+      return std::nullopt;
+    }
+    const auto & points_get5 = try_input5.value();
+
+    const auto try_trajectory =
+      TemporalTrajectory::Builder{}.set_xy_interpolator<interpolator::AkimaSpline>().build(
+        points_get5);
+    if (!try_trajectory) {
+      return std::nullopt;
+    }
+    return try_trajectory.value();
+  }
+
+  const auto try_input4 = populate4_temporal(points);
+  if (!try_input4) {
+    return std::nullopt;
+  }
+  const auto & points_get4 = try_input4.value();
+
+  const auto try_trajectory = TemporalTrajectory::Builder{}.build(points_get4);
+  if (!try_trajectory) {
+    return std::nullopt;
+  }
+  return try_trajectory.value();
+}
 
 }  // namespace autoware::experimental::trajectory

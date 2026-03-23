@@ -45,6 +45,8 @@ public:
 
   [[nodiscard]] double length() const;
   [[nodiscard]] double duration() const;
+  [[nodiscard]] double start_time() const;
+  [[nodiscard]] double end_time() const;
 
   [[nodiscard]] std::vector<double> get_underlying_time_bases() const;
   [[nodiscard]] std::vector<double> get_underlying_distance_bases() const;
@@ -61,6 +63,8 @@ public:
   [[nodiscard]] std::optional<double> distance_to_time(const double s) const;
 
   [[nodiscard]] std::vector<PointType> restore(const size_t min_points = 4) const;
+
+  void crop_time(const double start_time, const double duration);
 
   void set_stopline(const double arc_length);
   void set_stopline(const double arc_length, const double duration);
