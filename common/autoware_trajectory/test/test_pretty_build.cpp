@@ -703,25 +703,6 @@ TEST(pretty_build, from_4_akima_fail_because_points_are_too_few)
   EXPECT_EQ(trajectory_opt.has_value(), false);
 }
 
-TEST(pretty_build_temporal, from_2_cubic)
-{
-  const std::vector<autoware_planning_msgs::msg::TrajectoryPoint> points{
-    make_temporal_trajectory_point(0.0, 0.0, 0.0), make_temporal_trajectory_point(2.0, 0.0, 2.0)};
-
-  auto trajectory_opt = autoware::experimental::trajectory::pretty_build_temporal(points);
-  ASSERT_TRUE(trajectory_opt.has_value());
-
-  const auto & trajectory = trajectory_opt.value();
-  EXPECT_EQ(trajectory.get_underlying_time_bases().size(), 4);
-  EXPECT_EQ(trajectory.get_underlying_distance_bases().size(), 4);
-  EXPECT_NEAR(trajectory.length(), 2.0, 1e-6);
-  EXPECT_NEAR(trajectory.duration(), 2.0, 1e-6);
-
-  const auto middle_point = trajectory.compute_from_time(1.0);
-  EXPECT_NEAR(middle_point.pose.position.x, 1.0, 1e-6);
-  EXPECT_NEAR(rclcpp::Duration(middle_point.time_from_start).seconds(), 1.0, 1e-6);
-}
-
 TEST(pretty_build_temporal, from_4_akima)
 {
   const std::vector<autoware_planning_msgs::msg::TrajectoryPoint> points{

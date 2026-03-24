@@ -47,6 +47,9 @@ public:
   [[nodiscard]] double duration() const;
   [[nodiscard]] double start_time() const;
   [[nodiscard]] double end_time() const;
+  [[nodiscard]] double time_offset() const;
+
+  void set_time_offset(double offset);
 
   [[nodiscard]] std::vector<double> get_underlying_time_bases() const;
   [[nodiscard]] std::vector<double> get_underlying_distance_bases() const;
@@ -58,7 +61,6 @@ public:
   [[nodiscard]] std::vector<PointType> compute_from_distance(const std::vector<double> & ss) const;
 
   [[nodiscard]] double time_to_distance(const double t) const;
-  [[nodiscard]] std::vector<double> time_to_distance(const std::vector<double> & ts) const;
 
   [[nodiscard]] std::optional<double> distance_to_time(const double s) const;
 
@@ -171,6 +173,10 @@ private:
   std::shared_ptr<InterpolatorInterface> time_to_distance_{nullptr};
   std::vector<double> time_bases_;
   std::vector<double> distance_bases_;
+  double start_time_{0.0};
+  double end_time_{0.0};
+  double time_offset_{0.0};
+  double distance_offset_{0.0};
 
   [[nodiscard]] double clamp_time(const double t, bool show_warning = false) const;
 };
