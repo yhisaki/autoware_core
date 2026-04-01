@@ -14,6 +14,7 @@
 
 #include "autoware/trajectory/utils/crossed.hpp"
 
+#include "autoware/trajectory/detail/helpers.hpp"
 #include "autoware/trajectory/threshold.hpp"
 
 #include <algorithm>
@@ -32,8 +33,8 @@ std::optional<double> crossed_with_constraint_impl(
   Eigen::Vector2d line_dir = line_end - line_start;
 
   for (size_t i = 1; i < bases.size(); ++i) {
-    const Eigen::Vector2d p0 = trajectory_compute(bases.at(i - 1));
-    const Eigen::Vector2d p1 = trajectory_compute(bases.at(i));
+    const Eigen::Vector2d p0 = trajectory_compute(detail::clamped_at(bases, i - 1));
+    const Eigen::Vector2d p1 = trajectory_compute(detail::clamped_at(bases, i));
 
     Eigen::Vector2d segment_dir = p1 - p0;
 
@@ -51,7 +52,8 @@ std::optional<double> crossed_with_constraint_impl(
       (p0_to_line_start.x() * segment_dir.y() - p0_to_line_start.y() * segment_dir.x()) / det;
 
     if (t >= 0.0 && t <= 1.0 && u >= 0.0 && u <= 1.0) {
-      double intersection = bases.at(i - 1) + t * (bases.at(i) - bases.at(i - 1));
+      double intersection = detail::clamped_at(bases, i - 1) +
+                            t * (detail::clamped_at(bases, i) - detail::clamped_at(bases, i - 1));
       if (constraint(intersection)) {
         return intersection;
       }

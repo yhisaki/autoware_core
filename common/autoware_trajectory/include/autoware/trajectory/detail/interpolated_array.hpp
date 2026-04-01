@@ -15,6 +15,7 @@
 #ifndef AUTOWARE__TRAJECTORY__DETAIL__INTERPOLATED_ARRAY_HPP_
 #define AUTOWARE__TRAJECTORY__DETAIL__INTERPOLATED_ARRAY_HPP_
 
+#include "autoware/trajectory/detail/helpers.hpp"
 #include "autoware/trajectory/detail/logging.hpp"
 #include "autoware/trajectory/interpolator/interpolator.hpp"
 
@@ -59,7 +60,9 @@ private:
     }
 
     const auto value_index = (index == 0) ? 0 : index - 1;
-    values_.insert(values_.begin() + static_cast<std::ptrdiff_t>(index), values_.at(value_index));
+    values_.insert(
+      values_.begin() + static_cast<std::ptrdiff_t>(index),
+      ::autoware::experimental::trajectory::detail::clamped_at(values_, value_index));
     return index;
   }
 
@@ -155,7 +158,7 @@ public:
    * @brief Get the end value of the base.
    * @return The end value.
    */
-  double end() const { return bases_.at(bases_.size() - 1); }
+  double end() const { return detail::clamped_at(bases_, bases_.size() - 1); }
 
   class Segment
   {
@@ -229,7 +232,7 @@ public:
     void set(const T & value)
     {
       const auto index = parent_.insert_base_if_not_present(base_);
-      parent_.values_.at(index) = value;
+      parent_.values_[index] = value;
       parent_.rebuild();
     }
   };

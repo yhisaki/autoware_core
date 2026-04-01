@@ -14,6 +14,8 @@
 
 #include "autoware/trajectory/interpolator/spherical_linear.hpp"
 
+#include "autoware/trajectory/detail/helpers.hpp"
+
 #include <Eigen/Geometry>
 
 #include <utility>
@@ -42,10 +44,12 @@ bool SphericalLinear::build_impl(
 geometry_msgs::msg::Quaternion SphericalLinear::compute_impl(const double s) const
 {
   const int32_t idx = this->get_index(s);
-  const double x0 = this->bases_.at(idx);
-  const double x1 = this->bases_.at(idx + 1);
-  const geometry_msgs::msg::Quaternion y0 = this->quaternions_.at(idx);
-  const geometry_msgs::msg::Quaternion y1 = this->quaternions_.at(idx + 1);
+  const double x0 = ::autoware::experimental::trajectory::detail::clamped_at(this->bases_, idx);
+  const double x1 = ::autoware::experimental::trajectory::detail::clamped_at(this->bases_, idx + 1);
+  const geometry_msgs::msg::Quaternion y0 =
+    ::autoware::experimental::trajectory::detail::clamped_at(this->quaternions_, idx);
+  const geometry_msgs::msg::Quaternion y1 =
+    ::autoware::experimental::trajectory::detail::clamped_at(this->quaternions_, idx + 1);
 
   // Spherical linear interpolation (Slerp)
   const double t = (s - x0) / (x1 - x0);

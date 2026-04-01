@@ -91,21 +91,21 @@ bool CubicSpline::build_impl(const std::vector<double> & bases, std::vector<doub
 double CubicSpline::compute_impl(const double s) const
 {
   const int32_t i = this->get_index(s);
-  const double dx = s - this->bases_.at(i);
+  const double dx = s - ::autoware::experimental::trajectory::detail::clamped_at(this->bases_, i);
   return a_(i) + b_(i) * dx + c_(i) * dx * dx + d_(i) * dx * dx * dx;
 }
 
 double CubicSpline::compute_first_derivative_impl(const double s) const
 {
   const int32_t i = this->get_index(s);
-  const double dx = s - this->bases_.at(i);
+  const double dx = s - ::autoware::experimental::trajectory::detail::clamped_at(this->bases_, i);
   return b_(i) + 2 * c_(i) * dx + 3 * d_(i) * dx * dx;
 }
 
 double CubicSpline::compute_second_derivative_impl(const double s) const
 {
   const int32_t i = this->get_index(s);
-  const double dx = s - this->bases_.at(i);
+  const double dx = s - ::autoware::experimental::trajectory::detail::clamped_at(this->bases_, i);
   return 2 * c_(i) + 6 * d_(i) * dx;
 }
 

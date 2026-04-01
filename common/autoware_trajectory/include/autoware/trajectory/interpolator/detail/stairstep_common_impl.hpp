@@ -15,6 +15,7 @@
 #ifndef AUTOWARE__TRAJECTORY__INTERPOLATOR__DETAIL__STAIRSTEP_COMMON_IMPL_HPP_
 #define AUTOWARE__TRAJECTORY__INTERPOLATOR__DETAIL__STAIRSTEP_COMMON_IMPL_HPP_
 
+#include "autoware/trajectory/detail/helpers.hpp"
 #include "autoware/trajectory/interpolator/detail/interpolator_mixin.hpp"
 
 #include <utility>
@@ -51,7 +52,7 @@ protected:
   T compute_impl(const double s) const override
   {
     const int32_t idx = this->get_index(s, false);
-    return this->values_.at(idx);
+    return ::autoware::experimental::trajectory::detail::clamped_at(this->values_, idx);
   }
   /**
    * @brief Build the interpolator with the given values.

@@ -81,9 +81,9 @@ interpolator::InterpolationResult Trajectory<PointType>::build(
   zs.reserve(points.size() + 1);
 
   bases_.emplace_back(0.0);
-  xs.emplace_back(points.at(0).x);
-  ys.emplace_back(points.at(0).y);
-  zs.emplace_back(points.at(0).z);
+  xs.emplace_back(detail::clamped_at(points, 0).x);
+  ys.emplace_back(detail::clamped_at(points, 0).y);
+  zs.emplace_back(detail::clamped_at(points, 0).z);
 
   for (size_t i = 1; i < points.size(); ++i) {
     /**
@@ -94,12 +94,13 @@ interpolator::InterpolationResult Trajectory<PointType>::build(
        the interval of k_points_minimum_dist_threshold and interpolation is continued.
     */
     const auto dist = std::max<double>(
-      autoware_utils_geometry::calc_distance3d(points.at(i), points.at(i - 1)),
+      autoware_utils_geometry::calc_distance3d(
+        detail::clamped_at(points, i), detail::clamped_at(points, i - 1)),
       k_points_minimum_dist_threshold);
     bases_.emplace_back(bases_.back() + dist);
-    xs.emplace_back(points.at(i).x);
-    ys.emplace_back(points.at(i).y);
-    zs.emplace_back(points.at(i).z);
+    xs.emplace_back(detail::clamped_at(points, i).x);
+    ys.emplace_back(detail::clamped_at(points, i).y);
+    zs.emplace_back(detail::clamped_at(points, i).z);
   }
 
   start_ = bases_.front();

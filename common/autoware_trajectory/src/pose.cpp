@@ -56,7 +56,7 @@ Trajectory<PointType>::Trajectory(const Trajectory<geometry_msgs::msg::Point> & 
   // build mock orientations
   std::vector<geometry_msgs::msg::Quaternion> orientations(bases_.size());
   for (size_t i = 0; i < bases_.size(); ++i) {
-    orientations.at(i).w = 1.0;
+    detail::clamped_at(orientations, i).w = 1.0;
   }
   auto success = orientation_interpolator_->build(bases_, orientations);
 

@@ -14,6 +14,8 @@
 
 #include "autoware/trajectory/interpolator/lane_ids_interpolator.hpp"
 
+#include "autoware/trajectory/detail/helpers.hpp"
+
 #include <cmath>
 #include <utility>
 #include <vector>
@@ -26,16 +28,17 @@ std::vector<int64_t> LaneIdsInterpolator::compute_impl(const double s) const
   const int32_t idx = this->get_index(s);
 
   // Check for exact matches at base points
-  if (s == this->bases_.at(idx)) {
-    return values_.at(idx);
+  if (s == ::autoware::experimental::trajectory::detail::clamped_at(this->bases_, idx)) {
+    return ::autoware::experimental::trajectory::detail::clamped_at(values_, idx);
   }
-  if (s == this->bases_.at(idx + 1)) {
-    return values_.at(idx + 1);
+  if (s == ::autoware::experimental::trajectory::detail::clamped_at(this->bases_, idx + 1)) {
+    return ::autoware::experimental::trajectory::detail::clamped_at(values_, idx + 1);
   }
 
   // Get the two adjacent values for interpolation
-  const auto & left_value = values_.at(idx);
-  const auto & right_value = values_.at(idx + 1);
+  const auto & left_value = ::autoware::experimental::trajectory::detail::clamped_at(values_, idx);
+  const auto & right_value =
+    ::autoware::experimental::trajectory::detail::clamped_at(values_, idx + 1);
 
   // Domain knowledge: prefer boundaries with single lane IDs over multiple lane IDs
   // This handles the case where lane boundaries should contain more than two elements
@@ -45,8 +48,10 @@ std::vector<int64_t> LaneIdsInterpolator::compute_impl(const double s) const
   if (left_value.size() > 1 && right_value.size() == 1) {
     return right_value;
   }  // If both are single or both are multiple, choose the closest one
-  const double left_distance = s - this->bases_.at(idx);
-  const double right_distance = this->bases_.at(idx + 1) - s;
+  const double left_distance =
+    s - ::autoware::experimental::trajectory::detail::clamped_at(this->bases_, idx);
+  const double right_distance =
+    ::autoware::experimental::trajectory::detail::clamped_at(this->bases_, idx + 1) - s;
   return (left_distance <= right_distance) ? left_value : right_value;
 }
 

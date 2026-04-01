@@ -15,6 +15,7 @@
 #ifndef AUTOWARE__TRAJECTORY__INTERPOLATOR__DETAIL__NEAREST_NEIGHBOR_COMMON_IMPL_HPP_
 #define AUTOWARE__TRAJECTORY__INTERPOLATOR__DETAIL__NEAREST_NEIGHBOR_COMMON_IMPL_HPP_
 
+#include "autoware/trajectory/detail/helpers.hpp"
 #include "autoware/trajectory/interpolator/detail/interpolator_mixin.hpp"
 
 #include <utility>
@@ -52,9 +53,12 @@ protected:
       return this->values_.front();
     }
     const int32_t idx = this->get_index(s);
-    return (std::abs(s - this->bases_.at(idx)) <= std::abs(s - this->bases_.at(idx + 1)))
-             ? this->values_.at(idx)
-             : this->values_.at(idx + 1);
+    return (std::abs(
+              s - ::autoware::experimental::trajectory::detail::clamped_at(this->bases_, idx)) <=
+            std::abs(
+              s - ::autoware::experimental::trajectory::detail::clamped_at(this->bases_, idx + 1)))
+             ? ::autoware::experimental::trajectory::detail::clamped_at(this->values_, idx)
+             : ::autoware::experimental::trajectory::detail::clamped_at(this->values_, idx + 1);
   }
 
   /**

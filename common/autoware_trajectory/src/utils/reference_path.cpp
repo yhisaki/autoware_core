@@ -159,7 +159,7 @@ tl::expected<std::pair<ReferencePoints, std::string>, std::string> validate_rela
 
   ReferencePoints validated_points;
   for (auto i = vm_01_11_interval_start; i <= vm_01_11_interval_end; i++) {
-    const auto & waypoint = waypoints.at(i);
+    const auto & waypoint = detail::clamped_at(waypoints, i);
     if (is_waypoint_inside_lanelet(defined_lanelet, waypoint)) {
       validated_points.push_back(ReferencePoint{waypoint.point, waypoint.defined_lanelet_id});
       continue;
@@ -651,7 +651,7 @@ consolidate_user_defined_waypoints_and_native_centerline(
   }
   {
     const auto p1 = monotonic_reference_points.front();
-    const auto p2 = monotonic_reference_points.at(1);
+    const auto p2 = detail::clamped_at(monotonic_reference_points, 1);
     const double s_p1 = measure_point_s_no_check(lanelet_with_acc_dist_sequence, p1);
     const double s_p2 = measure_point_s_no_check(lanelet_with_acc_dist_sequence, p2);
     if (s_p1 <= s_start && s_start < s_p2) {
@@ -665,7 +665,8 @@ consolidate_user_defined_waypoints_and_native_centerline(
     }
   }
   {
-    const auto p1 = monotonic_reference_points.at(monotonic_reference_points.size() - 2);
+    const auto p1 =
+      detail::clamped_at(monotonic_reference_points, monotonic_reference_points.size() - 2);
     const auto p2 = monotonic_reference_points.back();
     const double s_p1 = measure_point_s_no_check(lanelet_with_acc_dist_sequence, p1);
     const double s_p2 = measure_point_s_no_check(lanelet_with_acc_dist_sequence, p2);  // >= s_end

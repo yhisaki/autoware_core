@@ -45,14 +45,14 @@ size_t insert_or_replace_base_at_time(
   const auto insert_index = find_time_index(time_bases, time);
   if (
     insert_index == time_bases.size() ||
-    std::abs(time_bases.at(insert_index) - time) > k_same_time_threshold) {
+    std::abs(detail::clamped_at(time_bases, insert_index) - time) > k_same_time_threshold) {
     time_bases.insert(time_bases.begin() + static_cast<std::ptrdiff_t>(insert_index), time);
     values.insert(values.begin() + static_cast<std::ptrdiff_t>(insert_index), value);
     return insert_index;
   }
 
-  time_bases.at(insert_index) = time;
-  values.at(insert_index) = value;
+  detail::clamped_at(time_bases, insert_index) = time;
+  detail::clamped_at(values, insert_index) = value;
   return insert_index;
 }
 }  // namespace
@@ -71,7 +71,7 @@ interpolator::InterpolationResult TimeDistanceMapping::extend_time_at(
   const auto pivot_index =
     insert_or_replace_base_at_time(time_bases, distance_bases, clamped_time, pivot_distance);
   for (size_t i = pivot_index + 1; i < time_bases.size(); ++i) {
-    time_bases.at(i) += delta_time;
+    detail::clamped_at(time_bases, i) += delta_time;
   }
 
   const auto end_index = insert_or_replace_base_at_time(
@@ -169,13 +169,13 @@ interpolator::InterpolationResult TimeDistanceMapping::build(
   distance_bases_.reserve(distance_bases.size());
 
   for (size_t i = 0; i < time_bases.size(); ++i) {
-    auto sanitized_time = time_bases.at(i);
+    auto sanitized_time = detail::clamped_at(time_bases, i);
     if (!time_bases_.empty() && (sanitized_time - time_bases_.back()) <= k_same_time_threshold) {
       sanitized_time = time_bases_.back() + k_minimum_time_base_extension;
     }
 
     time_bases_.emplace_back(sanitized_time);
-    distance_bases_.emplace_back(distance_bases.at(i));
+    distance_bases_.emplace_back(detail::clamped_at(distance_bases, i));
   }
 
   if (const auto result = detail::build_with_fallback(

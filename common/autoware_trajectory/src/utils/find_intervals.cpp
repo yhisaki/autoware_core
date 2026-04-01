@@ -48,22 +48,24 @@ std::vector<Interval> find_intervals_impl(
   bool is_started = false;
 
   for (size_t i = 0; i < bases.size(); ++i) {
-    if (!is_started && constraint(bases.at(i))) {
+    if (!is_started && constraint(detail::clamped_at(bases, i))) {
       if (i > 0) {
-        start = binary_search_start(bases.at(i - 1), bases.at(i), constraint, max_iter);
+        start = binary_search_start(
+          detail::clamped_at(bases, i - 1), detail::clamped_at(bases, i), constraint, max_iter);
       } else {
-        start = bases.at(i);  // Start a new interval}
+        start = detail::clamped_at(bases, i);  // Start a new interval}
       }
       is_started = true;  // Set the flag to indicate the interval has started
-    } else if (is_started && !constraint(bases.at(i))) {
+    } else if (is_started && !constraint(detail::clamped_at(bases, i))) {
       // End the current interval if the constraint fails or it's the last element
-      double end = binary_search_end(bases.at(i - 1), bases.at(i), constraint, max_iter);
+      double end = binary_search_end(
+        detail::clamped_at(bases, i - 1), detail::clamped_at(bases, i), constraint, max_iter);
       intervals.emplace_back(Interval{start, end});
       start = -1.0;        // Reset the start
       is_started = false;  // Reset the flag
     } else if (is_started && i == bases.size() - 1) {
       // If the last element is valid, end the interval
-      double end = bases.at(i);
+      double end = detail::clamped_at(bases, i);
       intervals.emplace_back(Interval{start, end});
       start = -1.0;        // Reset the start
       is_started = false;  // Reset the flag

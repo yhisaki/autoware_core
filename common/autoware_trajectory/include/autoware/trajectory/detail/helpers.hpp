@@ -17,11 +17,13 @@
 
 #include "autoware/trajectory/interpolator/result.hpp"
 
+#include <algorithm>
+#include <cstddef>
 #include <functional>
 #include <limits>
+#include <stdexcept>
 #include <utility>
 #include <vector>
-
 namespace autoware::experimental::trajectory::detail
 {
 /**
@@ -187,6 +189,54 @@ inline double binary_search_end(
   }
 
   return low;
+}
+
+/**
+ * @brief Access an element of a vector with index clamping.
+ *
+ * The given index is clamped to the valid range [0, size-1].
+ * If the vector is empty, this function throws std::out_of_range.
+ *
+ * @tparam T Element type of the vector
+ * @param v Target vector
+ * @param index Index to access (can be negative)
+ * @return Reference to the clamped element
+ * @throws std::out_of_range If the vector is empty
+ */
+template <class T>
+T & clamped_at(std::vector<T> & v, std::ptrdiff_t index)
+{
+  if (v.empty()) {
+    throw std::out_of_range("clamped_at: empty vector");
+  }
+
+  const auto max_index = static_cast<std::ptrdiff_t>(v.size() - 1);
+  const auto clamped_index = std::clamp(index, std::ptrdiff_t{0}, max_index);
+  return v[static_cast<std::size_t>(clamped_index)];
+}
+
+/**
+ * @brief Access an element of a const vector with index clamping.
+ *
+ * The given index is clamped to the valid range [0, size-1].
+ * If the vector is empty, this function throws std::out_of_range.
+ *
+ * @tparam T Element type of the vector
+ * @param v Target vector (const)
+ * @param index Index to access (can be negative)
+ * @return Const reference to the clamped element
+ * @throws std::out_of_range If the vector is empty
+ */
+template <class T>
+const T & clamped_at(const std::vector<T> & v, std::ptrdiff_t index)
+{
+  if (v.empty()) {
+    throw std::out_of_range("clamped_at: empty vector");
+  }
+
+  const auto max_index = static_cast<std::ptrdiff_t>(v.size() - 1);
+  const auto clamped_index = std::clamp(index, std::ptrdiff_t{0}, max_index);
+  return v[static_cast<std::size_t>(clamped_index)];
 }
 
 }  // namespace autoware::experimental::trajectory::detail

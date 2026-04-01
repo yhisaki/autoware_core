@@ -14,6 +14,8 @@
 
 #include "autoware/trajectory/utils/find_if.hpp"
 
+#include "autoware/trajectory/detail/helpers.hpp"
+
 #include <vector>
 
 namespace autoware::experimental::trajectory
@@ -46,13 +48,14 @@ std::optional<double> find_first_index_if_impl(
   const size_t max_iter)
 {
   for (size_t i = 0; i < bases.size(); ++i) {
-    if (!constraint(bases.at(i))) {
+    if (!constraint(detail::clamped_at(bases, i))) {
       continue;
     }
     if (i == 0) {
-      return bases.at(i);
+      return detail::clamped_at(bases, i);
     }
-    return binary_search(bases.at(i - 1), bases.at(i), constraint, max_iter);
+    return binary_search(
+      detail::clamped_at(bases, i - 1), detail::clamped_at(bases, i), constraint, max_iter);
   }
   return std::nullopt;
 }

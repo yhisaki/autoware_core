@@ -14,6 +14,8 @@
 
 #include "autoware/trajectory/utils/closest.hpp"
 
+#include "autoware/trajectory/detail/helpers.hpp"
+
 #include <algorithm>
 #include <limits>
 #include <vector>
@@ -29,8 +31,8 @@ std::optional<double> closest_with_constraint_impl(
   std::vector<double> lengths_from_start_points;
 
   for (size_t i = 1; i < bases.size(); ++i) {
-    const Eigen::Vector3d p0 = trajectory_compute(bases.at(i - 1));
-    const Eigen::Vector3d p1 = trajectory_compute(bases.at(i));
+    const Eigen::Vector3d p0 = trajectory_compute(detail::clamped_at(bases, i - 1));
+    const Eigen::Vector3d p1 = trajectory_compute(detail::clamped_at(bases, i));
 
     const Eigen::Vector3d v = p1 - p0;
     const Eigen::Vector3d w = point - p0;
@@ -38,15 +40,15 @@ std::optional<double> closest_with_constraint_impl(
     const double c2 = v.dot(v);
     const auto length_from_start_point = [&]() {
       if (c2 <= std::numeric_limits<double>::epsilon()) {
-        return bases.at(i - 1);
+        return detail::clamped_at(bases, i - 1);
       }
       if (c1 <= 0) {
-        return bases.at(i - 1);
+        return detail::clamped_at(bases, i - 1);
       }
       if (c2 <= c1) {
-        return bases.at(i);
+        return detail::clamped_at(bases, i);
       }
-      return bases.at(i - 1) + c1 / c2 * (p1 - p0).norm();
+      return detail::clamped_at(bases, i - 1) + c1 / c2 * (p1 - p0).norm();
     }();
     const auto distance_from_segment = [&]() {
       if (c2 <= std::numeric_limits<double>::epsilon()) {
@@ -71,6 +73,7 @@ std::optional<double> closest_with_constraint_impl(
 
   auto min_it = std::min_element(distances_from_segments.begin(), distances_from_segments.end());
 
-  return lengths_from_start_points.at(std::distance(distances_from_segments.begin(), min_it));
+  return detail::clamped_at(
+    lengths_from_start_points, std::distance(distances_from_segments.begin(), min_it));
 }
 }  // namespace autoware::experimental::trajectory::detail::impl
