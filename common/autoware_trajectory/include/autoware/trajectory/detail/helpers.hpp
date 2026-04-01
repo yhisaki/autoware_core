@@ -109,6 +109,86 @@ inline bool has_strictly_increasing_bases(
  * @return Cropped bases including start and end boundaries.
  */
 std::vector<double> crop_bases(const std::vector<double> & x, const double start, const double end);
+
+/**
+ * @brief Generic binary search over a continuous domain to find transition point.
+ *
+ * This function performs binary search where the predicate transitions from false to true.
+ * It searches for the point where:
+ * - predicate(x) is false for x < result
+ * - predicate(x) is true for x >= result
+ *
+ * @tparam Predicate Callable that takes a double and returns bool
+ * @param low Lower bound (predicate should be false here)
+ * @param high Upper bound (predicate should be true here)
+ * @param predicate Function to evaluate at each midpoint
+ * @param max_iter Maximum number of iterations
+ * @param tolerance Convergence tolerance (search stops when high - low <= tolerance)
+ * @return Value where predicate transitions from false to true (returns high)
+ *
+ * @note If predicate is already true at low, returns low
+ * @note If predicate is false at high, returns high (no valid transition found)
+ */
+template <typename Predicate>
+inline double binary_search(
+  double low, double high, Predicate predicate, size_t max_iter,
+  double tolerance = std::numeric_limits<double>::epsilon())
+{
+  // Binary search loop where low is false and high is true.
+  for (size_t i = 0; i < max_iter; ++i) {
+    if (high - low <= tolerance) {
+      break;
+    }
+
+    const double mid = 0.5 * (low + high);
+    if (predicate(mid)) {
+      high = mid;  // Mid satisfies predicate → move upper bound closer
+    } else {
+      low = mid;  // Mid does not satisfy predicate → move lower bound forward
+    }
+  }
+
+  return high;
+}
+
+/**
+ * @brief Binary search to find where predicate becomes false (end of true region).
+ *
+ * This function performs binary search where the predicate transitions from true to false.
+ * It searches for the point where:
+ * - predicate(x) is true for x <= result
+ * - predicate(x) is false for x > result
+ *
+ * @tparam Predicate Callable that takes a double and returns bool
+ * @param low Lower bound (predicate should be true here)
+ * @param high Upper bound (predicate should be false here)
+ * @param predicate Function to evaluate at each midpoint
+ * @param max_iter Maximum number of iterations
+ * @param tolerance Convergence tolerance
+ * @return Value where predicate transitions from true to false (returns low)
+ */
+template <typename Predicate>
+inline double binary_search_end(
+  double low, double high, Predicate predicate, size_t max_iter,
+  double tolerance = std::numeric_limits<double>::epsilon())
+{
+  // Binary search loop where low is true and high is false.
+  for (size_t i = 0; i < max_iter; ++i) {
+    if (high - low <= tolerance) {
+      break;
+    }
+
+    const double mid = 0.5 * (low + high);
+    if (predicate(mid)) {
+      low = mid;  // Mid satisfies predicate → move lower bound forward
+    } else {
+      high = mid;  // Mid does not satisfy predicate → move upper bound backward
+    }
+  }
+
+  return low;
+}
+
 }  // namespace autoware::experimental::trajectory::detail
 
 #endif  // AUTOWARE__TRAJECTORY__DETAIL__HELPERS_HPP_

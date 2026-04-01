@@ -14,6 +14,8 @@
 
 #include "autoware/trajectory/utils/find_intervals.hpp"
 
+#include "autoware/trajectory/detail/helpers.hpp"
+
 #include <cstddef>
 #include <vector>
 
@@ -24,22 +26,16 @@ namespace autoware::experimental::trajectory::detail::impl
 double binary_search_start(
   double low, double high, const std::function<bool(const double &)> & constraint, int max_iter)
 {
-  for (int i = 0; i < max_iter; ++i) {
-    const double mid = 0.5 * (low + high);
-    if (constraint(mid)) {
-      high = mid;  // Mid is valid → move end closer
-    } else {
-      low = mid;  // Mid is invalid → move start forward
-    }
-  }
-  return high;
+  return autoware::experimental::trajectory::detail::binary_search(
+    low, high, constraint, static_cast<size_t>(max_iter));
 }
 
 // Binary search where `low` is true, `high` is false
 double binary_search_end(
   double low, double high, const std::function<bool(const double &)> & constraint, int max_iter)
 {
-  return binary_search_start(high, low, constraint, max_iter);
+  return autoware::experimental::trajectory::detail::binary_search_end(
+    low, high, constraint, static_cast<size_t>(max_iter));
 }
 
 std::vector<Interval> find_intervals_impl(
