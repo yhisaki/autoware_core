@@ -17,6 +17,7 @@
 
 #include "autoware/trajectory/detail/types.hpp"
 #include "autoware/trajectory/forward.hpp"
+#include "autoware/trajectory/temporal_trajectory.hpp"
 
 #include <autoware_internal_planning_msgs/msg/path_point_with_lane_id.hpp>
 #include <autoware_planning_msgs/msg/path_point.hpp>
@@ -132,6 +133,36 @@ trajectory::Trajectory<PointType> add_offset(
                                                                    // since the offset points are
                                                                    // generated from a valid
                                                                    // trajectory.
+  return offset_trajectory;
+}
+
+inline TemporalTrajectory add_offset(
+  const TemporalTrajectory & reference_trajectory, const double offset_x, const double offset_y,
+  const double offset_z = 0.0)
+{
+  const auto underlying_time_bases = reference_trajectory.get_underlying_time_bases();
+
+  std::vector<TemporalTrajectory::PointType> offset_points;
+  offset_points.reserve(underlying_time_bases.size());
+
+  for (const auto t : underlying_time_bases) {
+    auto point = reference_trajectory.compute_from_time(t);
+    auto orientation = detail::get_orientation_from_point_type(point);
+    orientation.normalize();
+
+    const auto global_offset =
+      tf2::quatRotate(orientation, tf2::Vector3(offset_x, offset_y, offset_z));
+
+    detail::to_point(point).x += global_offset.x();
+    detail::to_point(point).y += global_offset.y();
+    detail::to_point(point).z += global_offset.z();
+
+    offset_points.emplace_back(point);
+  }
+
+  auto offset_trajectory = reference_trajectory;
+  const auto result = offset_trajectory.build(offset_points);
+  assert(result.has_value() && "add_offset: failed to build TemporalTrajectory with offset points");
   return offset_trajectory;
 }
 
